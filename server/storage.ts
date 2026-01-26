@@ -9,10 +9,12 @@ export interface IStorage {
   getIncome(): Promise<Income[]>;
   createIncome(data: InsertIncome): Promise<Income>;
   deleteIncome(id: number): Promise<void>;
+  updateIncome(id: number, data: Partial<InsertIncome>): Promise<Income>;
   
   getOutcome(): Promise<Outcome[]>;
   createOutcome(data: InsertOutcome): Promise<Outcome>;
   deleteOutcome(id: number): Promise<void>;
+  updateOutcome(id: number, data: Partial<InsertOutcome>): Promise<Outcome>;
 
   getFinancialSummary(): Promise<FinancialSummary>;
   getCategoryBreakdown(): Promise<CategoryBreakdown[]>;
@@ -97,6 +99,28 @@ export class MongoStorage implements IStorage {
     await this.incomeCollection!.deleteOne({ id });
   }
 
+  async updateIncome(id: number, data: Partial<InsertIncome>): Promise<Income> {
+    await this.connect();
+    const update: any = { ...data };
+    if (update.date) update.date = new Date(update.date);
+    
+    const result = await this.incomeCollection!.findOneAndUpdate(
+      { id },
+      { $set: update },
+      { returnDocument: "after" }
+    );
+    
+    if (!result) throw new Error("Income not found");
+    
+    return {
+      id: result.id,
+      amount: result.amount,
+      category: result.category,
+      description: result.description ?? null,
+      date: new Date(result.date)
+    };
+  }
+
   async getOutcome(): Promise<Outcome[]> {
     await this.connect();
     const docs = await this.outcomeCollection!.find({}).sort({ date: -1 }).toArray();
@@ -126,6 +150,28 @@ export class MongoStorage implements IStorage {
   async deleteOutcome(id: number): Promise<void> {
     await this.connect();
     await this.outcomeCollection!.deleteOne({ id });
+  }
+
+  async updateOutcome(id: number, data: Partial<InsertOutcome>): Promise<Outcome> {
+    await this.connect();
+    const update: any = { ...data };
+    if (update.date) update.date = new Date(update.date);
+    
+    const result = await this.outcomeCollection!.findOneAndUpdate(
+      { id },
+      { $set: update },
+      { returnDocument: "after" }
+    );
+    
+    if (!result) throw new Error("Outcome not found");
+    
+    return {
+      id: result.id,
+      amount: result.amount,
+      category: result.category,
+      description: result.description ?? null,
+      date: new Date(result.date)
+    };
   }
 
   async getFinancialSummary(): Promise<FinancialSummary> {

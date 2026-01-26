@@ -37,6 +37,23 @@ export async function registerRoutes(
     res.status(204).end();
   });
 
+  app.patch(api.income.update.path, async (req, res) => {
+    try {
+      const input = api.income.update.input.parse(req.body);
+      const item = await storage.updateIncome(Number(req.params.id), input);
+      res.json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      } else {
+        res.status(404).json({ message: "Income not found" });
+      }
+    }
+  });
+
   // Outcome
   app.get(api.outcome.list.path, async (req, res) => {
     const items = await storage.getOutcome();
@@ -63,6 +80,23 @@ export async function registerRoutes(
   app.delete(api.outcome.delete.path, async (req, res) => {
     await storage.deleteOutcome(Number(req.params.id));
     res.status(204).end();
+  });
+
+  app.patch(api.outcome.update.path, async (req, res) => {
+    try {
+      const input = api.outcome.update.input.parse(req.body);
+      const item = await storage.updateOutcome(Number(req.params.id), input);
+      res.json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      } else {
+        res.status(404).json({ message: "Outcome not found" });
+      }
+    }
   });
 
   // Analytics

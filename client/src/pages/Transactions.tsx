@@ -1,7 +1,7 @@
 import { useIncome, useOutcome, useDeleteIncome, useDeleteOutcome } from "@/hooks/use-transactions";
 import { Sidebar } from "@/components/Sidebar";
 import { format } from "date-fns";
-import { Loader2, Trash2, Search, TrendingUp, TrendingDown } from "lucide-react";
+import { Loader2, Trash2, Search, TrendingUp, TrendingDown, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -17,6 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditTransactionDialog } from "@/components/EditTransactionDialog";
 
 export default function Transactions() {
   const { data: income, isLoading: isIncomeLoading } = useIncome();
@@ -25,6 +26,7 @@ export default function Transactions() {
   const deleteOutcome = useDeleteOutcome();
   
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingTx, setEditingTx] = useState<{ tx: any, type: "income" | "outcome" } | null>(null);
 
   const handleDelete = (id: number, type: string) => {
     if (type === 'income') {
@@ -106,30 +108,40 @@ export default function Transactions() {
                               +₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="hover:text-destructive hover:bg-destructive/10">
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Income?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => handleDelete(tx.id, 'income')}
-                                      className="bg-destructive hover:bg-destructive/90 text-white"
-                                    >
-                                      {deleteIncome.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                              <div className="flex items-center justify-center gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 hover:text-primary hover:bg-primary/10"
+                                  onClick={() => setEditingTx({ tx, type: "income" })}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive hover:bg-destructive/10">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Income?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDelete(tx.id, 'income')}
+                                        className="bg-destructive hover:bg-destructive/90 text-white"
+                                      >
+                                        {deleteIncome.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -186,30 +198,40 @@ export default function Transactions() {
                               -₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="hover:text-destructive hover:bg-destructive/10">
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Outcome?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => handleDelete(tx.id, 'outcome')}
-                                      className="bg-destructive hover:bg-destructive/90 text-white"
-                                    >
-                                      {deleteOutcome.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                              <div className="flex items-center justify-center gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 hover:text-primary hover:bg-primary/10"
+                                  onClick={() => setEditingTx({ tx, type: "outcome" })}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive hover:bg-destructive/10">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Outcome?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDelete(tx.id, 'outcome')}
+                                        className="bg-destructive hover:bg-destructive/90 text-white"
+                                      >
+                                        {deleteOutcome.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -224,6 +246,15 @@ export default function Transactions() {
           </div>
         </div>
       </main>
+      
+      {editingTx && (
+        <EditTransactionDialog
+          transaction={editingTx.tx}
+          type={editingTx.type}
+          open={!!editingTx}
+          onOpenChange={(open) => !open && setEditingTx(null)}
+        />
+      )}
     </div>
   );
 }

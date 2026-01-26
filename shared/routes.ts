@@ -46,6 +46,16 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/income/:id',
+      input: insertIncomeSchema.partial(),
+      responses: {
+        200: z.custom<typeof income.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
   },
   outcome: {
     list: {
@@ -69,6 +79,16 @@ export const api = {
       path: '/api/outcome/:id',
       responses: {
         204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/outcome/:id',
+      input: insertOutcomeSchema.partial(),
+      responses: {
+        200: z.custom<typeof outcome.$inferSelect>(),
+        400: errorSchemas.validation,
         404: errorSchemas.notFound,
       },
     },

@@ -101,3 +101,51 @@ export function useDeleteOutcome() {
     },
   });
 }
+
+export function useUpdateIncome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: Partial<InsertIncome> }) => {
+      const url = buildUrl(api.income.update.path, { id });
+      const res = await fetch(url, {
+        method: api.income.update.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update income");
+      }
+      return api.income.update.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.income.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.analytics.summary.path] });
+      queryClient.invalidateQueries({ queryKey: [api.analytics.categoryBreakdown.path] });
+    },
+  });
+}
+
+export function useUpdateOutcome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: Partial<InsertOutcome> }) => {
+      const url = buildUrl(api.outcome.update.path, { id });
+      const res = await fetch(url, {
+        method: api.outcome.update.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update outcome");
+      }
+      return api.outcome.update.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.outcome.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.analytics.summary.path] });
+      queryClient.invalidateQueries({ queryKey: [api.analytics.categoryBreakdown.path] });
+    },
+  });
+}
