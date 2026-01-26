@@ -2,7 +2,7 @@ import { useFinancialSummary, useCategoryBreakdown } from "@/hooks/use-analytics
 import { useIncome, useOutcome } from "@/hooks/use-transactions";
 import { Sidebar } from "@/components/Sidebar";
 import { StatCard } from "@/components/StatCard";
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,19 @@ import { TransactionForm } from "@/components/TransactionForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
+import { useMonth } from "@/hooks/use-month";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 export default function Dashboard() {
-  const { data: summary, isLoading: isSummaryLoading } = useFinancialSummary();
-  const { data: breakdown, isLoading: isBreakdownLoading } = useCategoryBreakdown();
-  const { data: income, isLoading: isIncomeLoading } = useIncome();
-  const { data: outcome, isLoading: isOutcomeLoading } = useOutcome();
+  const { currentDate, nextMonth, prevMonth, formattedMonth } = useMonth();
+  const month = currentDate.getMonth();
+  const year = currentDate.getFullYear();
+
+  const { data: summary, isLoading: isSummaryLoading } = useFinancialSummary(month, year);
+  const { data: breakdown, isLoading: isBreakdownLoading } = useCategoryBreakdown(month, year);
+  const { data: income, isLoading: isIncomeLoading } = useIncome(month, year);
+  const { data: outcome, isLoading: isOutcomeLoading } = useOutcome(month, year);
   
   const [isTxOpen, setIsTxOpen] = useState(false);
 
@@ -40,8 +45,19 @@ export default function Dashboard() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold font-display text-foreground">Overview</h1>
-              <p className="text-muted-foreground mt-1">Welcome back, here's your financial summary.</p>
+              <div className="flex items-center gap-4 mb-1">
+                <h1 className="text-3xl font-bold font-display text-foreground">Overview</h1>
+                <div className="flex items-center gap-2 bg-card border border-border/50 px-3 py-1.5 rounded-xl shadow-sm ml-2">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={prevMonth}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-semibold min-w-[100px] text-center">{formattedMonth}</span>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={nextMonth}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-muted-foreground">Welcome back, here's your financial summary.</p>
             </div>
             
             <Dialog open={isTxOpen} onOpenChange={setIsTxOpen}>

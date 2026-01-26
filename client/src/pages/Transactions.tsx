@@ -1,7 +1,7 @@
 import { useIncome, useOutcome, useDeleteIncome, useDeleteOutcome } from "@/hooks/use-transactions";
 import { Sidebar } from "@/components/Sidebar";
 import { format } from "date-fns";
-import { Loader2, Trash2, Search, TrendingUp, TrendingDown, Pencil } from "lucide-react";
+import { Loader2, Trash2, Search, TrendingUp, TrendingDown, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -18,10 +18,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditTransactionDialog } from "@/components/EditTransactionDialog";
+import { useMonth } from "@/hooks/use-month";
 
 export default function Transactions() {
-  const { data: income, isLoading: isIncomeLoading } = useIncome();
-  const { data: outcome, isLoading: isOutcomeLoading } = useOutcome();
+  const { currentDate, nextMonth, prevMonth, formattedMonth } = useMonth();
+  const month = currentDate.getMonth();
+  const year = currentDate.getFullYear();
+
+  const { data: income, isLoading: isIncomeLoading } = useIncome(month, year);
+  const { data: outcome, isLoading: isOutcomeLoading } = useOutcome(month, year);
   const deleteIncome = useDeleteIncome();
   const deleteOutcome = useDeleteOutcome();
   
@@ -44,7 +49,18 @@ export default function Transactions() {
           
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold font-display text-foreground">Transactions</h1>
+              <div className="flex items-center gap-4 mb-1">
+                <h1 className="text-3xl font-bold font-display text-foreground">Transactions</h1>
+                <div className="flex items-center gap-2 bg-card border border-border/50 px-3 py-1.5 rounded-xl shadow-sm ml-2">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={prevMonth}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-semibold min-w-[100px] text-center">{formattedMonth}</span>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={nextMonth}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               <p className="text-muted-foreground mt-1">View and manage your financial history.</p>
             </div>
           </div>
