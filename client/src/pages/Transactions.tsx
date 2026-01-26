@@ -1,11 +1,10 @@
 import { useIncome, useOutcome, useDeleteIncome, useDeleteOutcome } from "@/hooks/use-transactions";
 import { Sidebar } from "@/components/Sidebar";
 import { format } from "date-fns";
-import { Loader2, Trash2, Search } from "lucide-react";
+import { Loader2, Trash2, Search, TrendingUp, TrendingDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -26,23 +25,6 @@ export default function Transactions() {
   const deleteOutcome = useDeleteOutcome();
   
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "outcome">("all");
-
-  const transactions = useMemo(() => {
-    const combined = [
-      ...(income || []).map(item => ({ ...item, type: 'income' })),
-      ...(outcome || []).map(item => ({ ...item, type: 'outcome' }))
-    ];
-    return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [income, outcome]);
-
-  const isLoading = isIncomeLoading || isOutcomeLoading;
-
-  const filteredTransactions = transactions.filter(tx => {
-    const matchesSearch = (tx.description || tx.category).toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === "all" || tx.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
 
   const handleDelete = (id: number, type: string) => {
     if (type === 'income') {
@@ -76,103 +58,168 @@ export default function Transactions() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="w-full sm:w-[180px]">
-                <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="outcome">Outcome</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
-            <div className="rounded-xl border border-border/40 overflow-hidden">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-muted/50 text-muted-foreground font-medium uppercase text-xs">
-                  <tr>
-                    <th className="px-6 py-4">Date</th>
-                    <th className="px-6 py-4">Description</th>
-                    <th className="px-6 py-4">Category</th>
-                    <th className="px-6 py-4">Type</th>
-                    <th className="px-6 py-4 text-right">Amount</th>
-                    <th className="px-6 py-4 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40 bg-card">
-                  {isLoading ? (
-                     Array(5).fill(0).map((_, i) => (
-                       <tr key={i}>
-                         <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
-                         <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
-                         <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
-                         <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
-                         <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
-                         <td className="px-6 py-4"><Skeleton className="h-8 w-8 mx-auto" /></td>
-                       </tr>
-                     ))
-                  ) : filteredTransactions.length > 0 ? (
-                    filteredTransactions.map((tx) => (
-                      <tr key={`${tx.type}-${tx.id}`} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
-                          {format(new Date(tx.date), 'MMM dd, yyyy')}
-                        </td>
-                        <td className="px-6 py-4 font-medium text-foreground">
-                          {tx.description || '-'}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground border border-border">
-                            {tx.category}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {tx.type}
-                          </span>
-                        </td>
-                        <td className={`px-6 py-4 text-right font-bold ${tx.type === 'income' ? 'text-green-600' : 'text-foreground'}`}>
-                          {tx.type === 'income' ? '+' : '-'}${Number(tx.amount).toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="hover:text-destructive hover:bg-destructive/10">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently remove the transaction from your records.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleDelete(tx.id, tx.type)}
-                                  className="bg-destructive hover:bg-destructive/90 text-white"
-                                >
-                                  {(deleteIncome.isPending || deleteOutcome.isPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </td>
+            <div className="grid grid-cols-1 gap-8">
+              {/* Income Table */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold font-display text-green-600 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" /> Income
+                </h3>
+                <div className="rounded-xl border border-border/40 overflow-hidden">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-green-50 text-green-700 font-medium uppercase text-xs">
+                      <tr>
+                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Description</th>
+                        <th className="px-6 py-4">Category</th>
+                        <th className="px-6 py-4 text-right">Amount</th>
+                        <th className="px-6 py-4 text-center">Actions</th>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                        No transactions found matching your filters.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody className="divide-y divide-border/40 bg-card">
+                      {isIncomeLoading ? (
+                        Array(3).fill(0).map((_, i) => (
+                          <tr key={i}>
+                            <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+                            <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
+                            <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                            <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                            <td className="px-6 py-4"><Skeleton className="h-8 w-8 mx-auto" /></td>
+                          </tr>
+                        ))
+                      ) : income && income.length > 0 ? (
+                        income.filter(tx => (tx.description || tx.category).toLowerCase().includes(searchTerm.toLowerCase())).map((tx) => (
+                          <tr key={tx.id} className="hover:bg-green-50/30 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
+                              {format(new Date(tx.date), 'MMM dd, yyyy')}
+                            </td>
+                            <td className="px-6 py-4 font-medium text-foreground">
+                              {tx.description || '-'}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground border border-border">
+                                {tx.category}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right font-bold text-green-600">
+                              +${Number(tx.amount).toFixed(2)}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="hover:text-destructive hover:bg-destructive/10">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Income?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDelete(tx.id, 'income')}
+                                      className="bg-destructive hover:bg-destructive/90 text-white"
+                                    >
+                                      {deleteIncome.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">No income records found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Outcome Table */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold font-display text-red-600 flex items-center gap-2">
+                  <TrendingDown className="w-5 h-5" /> Outcome
+                </h3>
+                <div className="rounded-xl border border-border/40 overflow-hidden">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-red-50 text-red-700 font-medium uppercase text-xs">
+                      <tr>
+                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Description</th>
+                        <th className="px-6 py-4">Category</th>
+                        <th className="px-6 py-4 text-right">Amount</th>
+                        <th className="px-6 py-4 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40 bg-card">
+                      {isOutcomeLoading ? (
+                        Array(3).fill(0).map((_, i) => (
+                          <tr key={i}>
+                            <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+                            <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
+                            <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                            <td className="px-6 py-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
+                            <td className="px-6 py-4"><Skeleton className="h-8 w-8 mx-auto" /></td>
+                          </tr>
+                        ))
+                      ) : outcome && outcome.length > 0 ? (
+                        outcome.filter(tx => (tx.description || tx.category).toLowerCase().includes(searchTerm.toLowerCase())).map((tx) => (
+                          <tr key={tx.id} className="hover:bg-red-50/30 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
+                              {format(new Date(tx.date), 'MMM dd, yyyy')}
+                            </td>
+                            <td className="px-6 py-4 font-medium text-foreground">
+                              {tx.description || '-'}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground border border-border">
+                                {tx.category}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right font-bold text-red-600">
+                              -${Number(tx.amount).toFixed(2)}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="hover:text-destructive hover:bg-destructive/10">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Outcome?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDelete(tx.id, 'outcome')}
+                                      className="bg-destructive hover:bg-destructive/90 text-white"
+                                    >
+                                      {deleteOutcome.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">No outcome records found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>

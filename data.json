@@ -1,15 +1,36 @@
 {
   "income": [
     {
-      "type": "income",
-      "amount": "5000.00",
-      "category": "Salary",
-      "date": "2026-01-01T00:00:00.000Z",
-      "description": "Monthly Salary",
-      "id": 1
+      "amount": "36456354",
+      "category": "",
+      "description": "",
+      "id": 2,
+      "date": "2026-01-26T05:01:54.600Z"
+    },
+    {
+      "amount": "53847653121",
+      "category": "",
+      "description": "",
+      "id": 3,
+      "date": "2026-01-26T05:02:11.228Z"
     }
   ],
-  "outcome": [],
-  "nextIncomeId": 2,
-  "nextOutcomeId": 1
+  "outcome": [
+    {
+      "amount": "666",
+      "category": "",
+      "description": "",
+      "id": 1,
+      "date": "2026-01-26T05:01:48.650Z"
+    },
+    {
+      "amount": "1453",
+      "category": "",
+      "description": "",
+      "id": 2,
+      "date": "2026-01-26T05:02:05.174Z"
+    }
+  ],
+  "nextIncomeId": 4,
+  "nextOutcomeId": 3
 }
