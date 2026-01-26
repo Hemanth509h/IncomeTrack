@@ -7,30 +7,6 @@
       "date": "2026-01-01T00:00:00.000Z",
       "description": "Monthly Salary",
       "id": 17
-    },
-    {
-      "type": "expense",
-      "amount": "1200.00",
-      "category": "Rent",
-      "date": "2026-01-05T00:00:00.000Z",
-      "description": "Apartment Rent",
-      "id": 18
-    },
-    {
-      "type": "expense",
-      "amount": "450.00",
-      "category": "Groceries",
-      "date": "2026-01-10T00:00:00.000Z",
-      "description": "Weekly groceries",
-      "id": 19
-    },
-    {
-      "type": "expense",
-      "amount": "150.00",
-      "category": "Utilities",
-      "date": "2026-01-15T00:00:00.000Z",
-      "description": "Electricity Bill",
-      "id": 20
     }
   ],
   "nextTransactionId": 21
