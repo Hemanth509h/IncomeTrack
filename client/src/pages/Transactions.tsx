@@ -1,11 +1,11 @@
-import { useTransactions, useDeleteTransaction } from "@/hooks/use-transactions";
+import { useIncome, useOutcome, useDeleteIncome, useDeleteOutcome } from "@/hooks/use-transactions";
 import { Sidebar } from "@/components/Sidebar";
 import { format } from "date-fns";
-import { Loader2, Trash2, Search, Filter } from "lucide-react";
+import { Loader2, Trash2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -20,16 +20,37 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Transactions() {
-  const { data: transactions, isLoading } = useTransactions();
-  const deleteMutation = useDeleteTransaction();
+  const { data: income, isLoading: isIncomeLoading } = useIncome();
+  const { data: outcome, isLoading: isOutcomeLoading } = useOutcome();
+  const deleteIncome = useDeleteIncome();
+  const deleteOutcome = useDeleteOutcome();
+  
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "outcome">("all");
 
-  const filteredTransactions = transactions?.filter(tx => {
+  const transactions = useMemo(() => {
+    const combined = [
+      ...(income || []).map(item => ({ ...item, type: 'income' })),
+      ...(outcome || []).map(item => ({ ...item, type: 'outcome' }))
+    ];
+    return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [income, outcome]);
+
+  const isLoading = isIncomeLoading || isOutcomeLoading;
+
+  const filteredTransactions = transactions.filter(tx => {
     const matchesSearch = (tx.description || tx.category).toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "all" || tx.type === typeFilter;
     return matchesSearch && matchesType;
   });
+
+  const handleDelete = (id: number, type: string) => {
+    if (type === 'income') {
+      deleteIncome.mutate(id);
+    } else {
+      deleteOutcome.mutate(id);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
@@ -63,7 +84,7 @@ export default function Transactions() {
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="expense">Expense</SelectItem>
+                    <SelectItem value="outcome">Outcome</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -93,9 +114,9 @@ export default function Transactions() {
                          <td className="px-6 py-4"><Skeleton className="h-8 w-8 mx-auto" /></td>
                        </tr>
                      ))
-                  ) : filteredTransactions && filteredTransactions.length > 0 ? (
+                  ) : filteredTransactions.length > 0 ? (
                     filteredTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-muted/30 transition-colors">
+                      <tr key={`${tx.type}-${tx.id}`} className="hover:bg-muted/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
                           {format(new Date(tx.date), 'MMM dd, yyyy')}
                         </td>
@@ -132,10 +153,10 @@ export default function Transactions() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction 
-                                  onClick={() => deleteMutation.mutate(tx.id)}
+                                  onClick={() => handleDelete(tx.id, tx.type)}
                                   className="bg-destructive hover:bg-destructive/90 text-white"
                                 >
-                                  {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+                                  {(deleteIncome.isPending || deleteOutcome.isPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

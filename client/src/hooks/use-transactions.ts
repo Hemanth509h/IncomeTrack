@@ -1,54 +1,101 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import { type InsertTransaction } from "@shared/schema";
+import { type InsertIncome, type InsertOutcome } from "@shared/schema";
 
-export function useTransactions() {
+export function useIncome() {
   return useQuery({
-    queryKey: [api.transactions.list.path],
+    queryKey: [api.income.list.path],
     queryFn: async () => {
-      const res = await fetch(api.transactions.list.path);
-      if (!res.ok) throw new Error("Failed to fetch transactions");
-      return api.transactions.list.responses[200].parse(await res.json());
+      const res = await fetch(api.income.list.path);
+      if (!res.ok) throw new Error("Failed to fetch income");
+      return api.income.list.responses[200].parse(await res.json());
     },
   });
 }
 
-export function useCreateTransaction() {
+export function useOutcome() {
+  return useQuery({
+    queryKey: [api.outcome.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.outcome.list.path);
+      if (!res.ok) throw new Error("Failed to fetch outcome");
+      return api.outcome.list.responses[200].parse(await res.json());
+    },
+  });
+}
+
+export function useCreateIncome() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: InsertTransaction) => {
-      // Coerce amount to string/number if needed, but schema handles decimal as string often
-      // Zod schema usually handles coercion if defined, but here we just pass the object
-      const res = await fetch(api.transactions.create.path, {
-        method: api.transactions.create.method,
+    mutationFn: async (data: InsertIncome) => {
+      const res = await fetch(api.income.create.path, {
+        method: api.income.create.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to create transaction");
+        throw new Error(error.message || "Failed to create income");
       }
-      return api.transactions.create.responses[201].parse(await res.json());
+      return api.income.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.transactions.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.income.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.analytics.summary.path] });
       queryClient.invalidateQueries({ queryKey: [api.analytics.categoryBreakdown.path] });
     },
   });
 }
 
-export function useDeleteTransaction() {
+export function useCreateOutcome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: InsertOutcome) => {
+      const res = await fetch(api.outcome.create.path, {
+        method: api.outcome.create.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to create outcome");
+      }
+      return api.outcome.create.responses[201].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.outcome.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.analytics.summary.path] });
+      queryClient.invalidateQueries({ queryKey: [api.analytics.categoryBreakdown.path] });
+    },
+  });
+}
+
+export function useDeleteIncome() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: number) => {
-      const url = buildUrl(api.transactions.delete.path, { id });
-      const res = await fetch(url, { method: api.transactions.delete.method });
-      if (!res.ok) throw new Error("Failed to delete transaction");
+      const url = buildUrl(api.income.delete.path, { id });
+      const res = await fetch(url, { method: api.income.delete.method });
+      if (!res.ok) throw new Error("Failed to delete income");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.transactions.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.income.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.analytics.summary.path] });
+      queryClient.invalidateQueries({ queryKey: [api.analytics.categoryBreakdown.path] });
+    },
+  });
+}
+
+export function useDeleteOutcome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.outcome.delete.path, { id });
+      const res = await fetch(url, { method: api.outcome.delete.method });
+      if (!res.ok) throw new Error("Failed to delete outcome");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.outcome.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.analytics.summary.path] });
       queryClient.invalidateQueries({ queryKey: [api.analytics.categoryBreakdown.path] });
     },

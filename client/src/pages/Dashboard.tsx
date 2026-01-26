@@ -1,26 +1,35 @@
 import { useFinancialSummary, useCategoryBreakdown } from "@/hooks/use-analytics";
-import { useTransactions } from "@/hooks/use-transactions";
+import { useIncome, useOutcome } from "@/hooks/use-transactions";
 import { Sidebar } from "@/components/Sidebar";
 import { StatCard } from "@/components/StatCard";
 import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TransactionForm } from "@/components/TransactionForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 export default function Dashboard() {
   const { data: summary, isLoading: isSummaryLoading } = useFinancialSummary();
   const { data: breakdown, isLoading: isBreakdownLoading } = useCategoryBreakdown();
-  const { data: recentTransactions, isLoading: isTransactionsLoading } = useTransactions();
+  const { data: income, isLoading: isIncomeLoading } = useIncome();
+  const { data: outcome, isLoading: isOutcomeLoading } = useOutcome();
+  
   const [isTxOpen, setIsTxOpen] = useState(false);
 
-  // Take only last 5 transactions
-  const latestTransactions = recentTransactions?.slice(0, 5) || [];
+  const latestTransactions = useMemo(() => {
+    const combined = [
+      ...(income || []).map(item => ({ ...item, type: 'income' })),
+      ...(outcome || []).map(item => ({ ...item, type: 'outcome' }))
+    ];
+    return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+  }, [income, outcome]);
+
+  const isTransactionsLoading = isIncomeLoading || isOutcomeLoading;
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
@@ -104,7 +113,7 @@ export default function Dashboard() {
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                       />
                       <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={24}>
-                        {breakdown.map((entry, index) => (
+                        {breakdown.map((_entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Bar>
@@ -126,7 +135,7 @@ export default function Dashboard() {
                   Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)
                 ) : latestTransactions.length > 0 ? (
                   latestTransactions.map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors">
+                    <div key={`${tx.type}-${tx.id}`} className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                           {tx.type === 'income' ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}

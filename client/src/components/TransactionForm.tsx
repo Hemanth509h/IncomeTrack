@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertTransactionSchema } from "@shared/schema";
+import { insertIncomeSchema, insertOutcomeSchema } from "@shared/schema";
 import { z } from "zod";
-import { useCreateTransaction } from "@/hooks/use-transactions";
+import { useCreateIncome, useCreateOutcome } from "@/hooks/use-transactions";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -24,12 +24,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, X } from "lucide-react";
 
-// Extend schema for form usage (handle string -> number coercion)
-const formSchema = insertTransactionSchema.extend({
+const incomeFormSchema = insertIncomeSchema.extend({
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+const outcomeFormSchema = insertOutcomeSchema.extend({
+  amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
+});
 
 const DEFAULT_CATEGORIES = [
   "Housing",
@@ -45,21 +46,23 @@ const DEFAULT_CATEGORIES = [
 
 export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
-  const mutation = useCreateTransaction();
+  const incomeMutation = useCreateIncome();
+  const outcomeMutation = useCreateOutcome();
   const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
+  const [type, setType] = useState<"income" | "outcome">("outcome");
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm({
+    resolver: zodResolver(type === "income" ? incomeFormSchema : outcomeFormSchema),
     defaultValues: {
-      type: "expense",
       category: "",
       description: "",
-      amount: undefined,
+      amount: undefined as any,
     },
   });
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = (data: any) => {
+    const mutation = type === "income" ? incomeMutation : outcomeMutation;
     mutation.mutate({
       ...data,
       amount: data.amount.toString(),
@@ -95,27 +98,20 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Type</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="income">Income</SelectItem>
-                  <SelectItem value="expense">Expense</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormItem>
+          <FormLabel>Type</FormLabel>
+          <Select value={type} onValueChange={(v: any) => setType(v)}>
+            <FormControl>
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              <SelectItem value="income">Income</SelectItem>
+              <SelectItem value="outcome">Outcome</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormItem>
 
         <FormField
           control={form.control}
@@ -218,9 +214,9 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
         <Button 
           type="submit" 
           className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6 rounded-xl shadow-lg shadow-primary/20"
-          disabled={mutation.isPending}
+          disabled={incomeMutation.isPending || outcomeMutation.isPending}
         >
-          {mutation.isPending ? (
+          {incomeMutation.isPending || outcomeMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Saving...
