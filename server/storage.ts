@@ -31,10 +31,7 @@ export class MongoStorage implements IStorage {
   private countersCollection: Collection<CounterDoc> | null = null;
 
   constructor() {
-    const uri = process.env.MONGODB_URI;
-    if (!uri) {
-      throw new Error("MONGODB_URI environment variable is required");
-    }
+    const uri = "mongodb+srv://phemanthkumar746:htnameh509h@data.psr09.mongodb.net/canteen?retryWrites=true&w=majority&appName=data";
     this.client = new MongoClient(uri);
   }
 
