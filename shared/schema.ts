@@ -21,8 +21,13 @@ export const outcome = pgTable("outcome", {
 });
 
 // === BASE SCHEMAS ===
-export const insertIncomeSchema = createInsertSchema(income).omit({ id: true });
-export const insertOutcomeSchema = createInsertSchema(outcome).omit({ id: true });
+export const insertIncomeSchema = createInsertSchema(income).extend({
+  date: z.string().or(z.date()).transform((val) => new Date(val)),
+}).omit({ id: true });
+
+export const insertOutcomeSchema = createInsertSchema(outcome).extend({
+  date: z.string().or(z.date()).transform((val) => new Date(val)),
+}).omit({ id: true });
 
 // === EXPLICIT API CONTRACT TYPES ===
 
