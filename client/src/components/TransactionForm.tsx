@@ -74,10 +74,17 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
 
   const onSubmit = (data: any) => {
     const mutation = type === "income" ? incomeMutation : outcomeMutation;
+    // Normalize date to UTC midnight to avoid timezone shifts
+    const utcDate = new Date(Date.UTC(
+      data.date.getFullYear(),
+      data.date.getMonth(),
+      data.date.getDate()
+    ));
+    
     mutation.mutate({
       ...data,
       amount: data.amount.toString(),
-      date: data.date.toISOString(),
+      date: utcDate.toISOString(),
     }, {
       onSuccess: () => {
         toast({

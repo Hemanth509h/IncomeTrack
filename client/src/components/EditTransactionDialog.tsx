@@ -97,12 +97,19 @@ export function EditTransactionDialog({ transaction, type, open, onOpenChange }:
 
   const onSubmit = (data: any) => {
     const mutation = type === "income" ? updateIncomeMutation : updateOutcomeMutation;
+    // Normalize date to UTC midnight to avoid timezone shifts
+    const utcDate = new Date(Date.UTC(
+      data.date.getFullYear(),
+      data.date.getMonth(),
+      data.date.getDate()
+    ));
+
     mutation.mutate({
       id: transaction.id,
       data: {
         ...data,
         amount: data.amount.toString(),
-        date: data.date.toISOString(),
+        date: utcDate.toISOString(),
       },
     }, {
       onSuccess: () => {
