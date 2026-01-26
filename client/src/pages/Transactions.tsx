@@ -66,8 +66,8 @@ export default function Transactions() {
                 <h3 className="text-xl font-bold font-display text-green-600 flex items-center gap-2">
                   <TrendingUp className="w-5 h-5" /> Income
                 </h3>
-                <div className="rounded-xl border border-border/40 overflow-hidden">
-                  <table className="w-full text-sm text-left">
+                <div className="rounded-xl border border-border/40 overflow-x-auto">
+                  <table className="w-full min-w-[600px] text-sm text-left">
                     <thead className="bg-green-50 text-green-700 font-medium uppercase text-xs">
                       <tr>
                         <th className="px-6 py-4">Date</th>
@@ -146,8 +146,8 @@ export default function Transactions() {
                 <h3 className="text-xl font-bold font-display text-red-600 flex items-center gap-2">
                   <TrendingDown className="w-5 h-5" /> Outcome
                 </h3>
-                <div className="rounded-xl border border-border/40 overflow-hidden">
-                  <table className="w-full text-sm text-left">
+                <div className="rounded-xl border border-border/40 overflow-x-auto">
+                  <table className="w-full min-w-[600px] text-sm text-left">
                     <thead className="bg-red-50 text-red-700 font-medium uppercase text-xs">
                       <tr>
                         <th className="px-6 py-4">Date</th>
