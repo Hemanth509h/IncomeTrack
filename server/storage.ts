@@ -1,6 +1,5 @@
 import {
   type Transaction, type InsertTransaction,
-  type Budget, type InsertBudget,
   type FinancialSummary, type CategoryBreakdown
 } from "@shared/schema";
 import fs from "fs/promises";
@@ -10,18 +9,13 @@ const DATA_FILE = path.join(process.cwd(), "data.json");
 
 interface LocalData {
   transactions: Transaction[];
-  budgets: Budget[];
   nextTransactionId: number;
-  nextBudgetId: number;
 }
 
 export interface IStorage {
   getTransactions(): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   deleteTransaction(id: number): Promise<void>;
-  getBudgets(): Promise<Budget[]>;
-  createBudget(budget: InsertBudget): Promise<Budget>;
-  deleteBudget(id: number): Promise<void>;
   getFinancialSummary(): Promise<FinancialSummary>;
   getCategoryBreakdown(): Promise<CategoryBreakdown[]>;
 }
@@ -34,12 +28,16 @@ export class JsonStorage implements IStorage {
     try {
       const content = await fs.readFile(DATA_FILE, "utf-8");
       this.data = JSON.parse(content);
+      // Clean up any budget related data if exists in JSON
+      if ((this.data as any).budgets) {
+        delete (this.data as any).budgets;
+        delete (this.data as any).nextBudgetId;
+        await this.save();
+      }
     } catch (e) {
       this.data = {
         transactions: [],
-        budgets: [],
         nextTransactionId: 1,
-        nextBudgetId: 1,
       };
       await this.save();
     }
@@ -73,28 +71,6 @@ export class JsonStorage implements IStorage {
   async deleteTransaction(id: number): Promise<void> {
     const data = await this.load();
     data.transactions = data.transactions.filter(t => t.id !== id);
-    await this.save();
-  }
-
-  async getBudgets(): Promise<Budget[]> {
-    const data = await this.load();
-    return data.budgets;
-  }
-
-  async createBudget(insertBudget: InsertBudget): Promise<Budget> {
-    const data = await this.load();
-    const budget: Budget = {
-      ...insertBudget,
-      id: data.nextBudgetId++,
-    };
-    data.budgets.push(budget);
-    await this.save();
-    return budget;
-  }
-
-  async deleteBudget(id: number): Promise<void> {
-    const data = await this.load();
-    data.budgets = data.budgets.filter(b => b.id !== id);
     await this.save();
   }
 

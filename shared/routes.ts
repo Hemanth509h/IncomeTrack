@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertTransactionSchema, insertBudgetSchema, transactions, budgets } from './schema';
+import { insertTransactionSchema, transactions } from './schema';
 
 // ============================================
 // SHARED ERROR SCHEMAS
@@ -49,32 +49,6 @@ export const api = {
     delete: {
       method: 'DELETE' as const,
       path: '/api/transactions/:id',
-      responses: {
-        204: z.void(),
-        404: errorSchemas.notFound,
-      },
-    },
-  },
-  budgets: {
-    list: {
-      method: 'GET' as const,
-      path: '/api/budgets',
-      responses: {
-        200: z.array(z.custom<typeof budgets.$inferSelect>()),
-      },
-    },
-    create: {
-      method: 'POST' as const,
-      path: '/api/budgets',
-      input: insertBudgetSchema,
-      responses: {
-        201: z.custom<typeof budgets.$inferSelect>(),
-        400: errorSchemas.validation,
-      },
-    },
-    delete: {
-      method: 'DELETE' as const,
-      path: '/api/budgets/:id',
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
