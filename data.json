@@ -1,61 +1,37 @@
 {
-  "transactions": [],
-  "budgets": [
+  "transactions": [
     {
+      "type": "income",
+      "amount": "5000.00",
+      "category": "Salary",
+      "date": "2026-01-01T00:00:00.000Z",
+      "description": "Monthly Salary",
+      "id": 13
+    },
+    {
+      "type": "expense",
+      "amount": "1200.00",
       "category": "Rent",
-      "limit": "1200.00",
-      "period": "monthly",
-      "id": 1
+      "date": "2026-01-05T00:00:00.000Z",
+      "description": "Apartment Rent",
+      "id": 14
     },
     {
+      "type": "expense",
+      "amount": "450.00",
       "category": "Groceries",
-      "limit": "600.00",
-      "period": "monthly",
-      "id": 2
+      "date": "2026-01-10T00:00:00.000Z",
+      "description": "Weekly groceries",
+      "id": 15
     },
     {
-      "category": "Entertainment",
-      "limit": "300.00",
-      "period": "monthly",
-      "id": 3
-    },
-    {
-      "category": "Rent",
-      "limit": "1200.00",
-      "period": "monthly",
-      "id": 4
-    },
-    {
-      "category": "Groceries",
-      "limit": "600.00",
-      "period": "monthly",
-      "id": 5
-    },
-    {
-      "category": "Entertainment",
-      "limit": "300.00",
-      "period": "monthly",
-      "id": 6
-    },
-    {
-      "category": "Rent",
-      "limit": "1200.00",
-      "period": "monthly",
-      "id": 7
-    },
-    {
-      "category": "Groceries",
-      "limit": "600.00",
-      "period": "monthly",
-      "id": 8
-    },
-    {
-      "category": "Entertainment",
-      "limit": "300.00",
-      "period": "monthly",
-      "id": 9
+      "type": "expense",
+      "amount": "150.00",
+      "category": "Utilities",
+      "date": "2026-01-15T00:00:00.000Z",
+      "description": "Electricity Bill",
+      "id": 16
     }
   ],
-  "nextTransactionId": 13,
-  "nextBudgetId": 10
+  "nextTransactionId": 17
 }

@@ -62,6 +62,7 @@ export class JsonStorage implements IStorage {
       ...insertTransaction,
       id: data.nextTransactionId++,
       date: insertTransaction.date ? new Date(insertTransaction.date) : new Date(),
+      description: insertTransaction.description ?? null,
     };
     data.transactions.push(transaction);
     await this.save();

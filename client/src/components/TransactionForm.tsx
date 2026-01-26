@@ -60,7 +60,10 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
   });
 
   const onSubmit = (data: FormValues) => {
-    mutation.mutate(data, {
+    mutation.mutate({
+      ...data,
+      amount: data.amount.toString(),
+    }, {
       onSuccess: () => {
         toast({
           title: "Transaction Added",
@@ -205,7 +208,7 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
             <FormItem>
               <FormLabel>Description (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Weekly Groceries" {...field} />
+                <Input placeholder="e.g. Weekly Groceries" {...field} value={field.value ?? ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
