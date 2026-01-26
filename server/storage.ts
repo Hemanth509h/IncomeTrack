@@ -3,17 +3,7 @@ import {
   type Outcome, type InsertOutcome,
   type FinancialSummary, type CategoryBreakdown
 } from "@shared/schema";
-import fs from "fs/promises";
-import path from "path";
-
-const DATA_FILE = path.join(process.cwd(), "data.json");
-
-interface LocalData {
-  income: Income[];
-  outcome: Outcome[];
-  nextIncomeId: number;
-  nextOutcomeId: number;
-}
+import { MongoClient, Db, Collection, ObjectId } from "mongodb";
 
 export interface IStorage {
   getIncome(): Promise<Income[]>;
@@ -28,117 +18,132 @@ export interface IStorage {
   getCategoryBreakdown(): Promise<CategoryBreakdown[]>;
 }
 
-export class JsonStorage implements IStorage {
-  private data: LocalData | null = null;
+interface CounterDoc {
+  _id: string;
+  seq: number;
+}
 
-  private async load(): Promise<LocalData> {
-    if (this.data) return this.data;
-    try {
-      const content = await fs.readFile(DATA_FILE, "utf-8");
-      const parsed = JSON.parse(content);
-      
-      // Migration logic if converting from old transactions structure
-      if (parsed.transactions) {
-        const income: Income[] = [];
-        const outcome: Outcome[] = [];
-        let nextIncomeId = 1;
-        let nextOutcomeId = 1;
+export class MongoStorage implements IStorage {
+  private client: MongoClient;
+  private db: Db | null = null;
+  private incomeCollection: Collection<any> | null = null;
+  private outcomeCollection: Collection<any> | null = null;
+  private countersCollection: Collection<CounterDoc> | null = null;
 
-        for (const t of parsed.transactions) {
-          if (t.type === 'income') {
-            income.push({ ...t, id: nextIncomeId++ });
-          } else {
-            outcome.push({ ...t, id: nextOutcomeId++ });
-          }
-        }
-        
-        this.data = {
-          income,
-          outcome,
-          nextIncomeId,
-          nextOutcomeId
-        };
-        await this.save();
-      } else {
-        this.data = parsed;
-      }
-    } catch (e) {
-      this.data = {
-        income: [],
-        outcome: [],
-        nextIncomeId: 1,
-        nextOutcomeId: 1,
-      };
-      await this.save();
+  constructor() {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error("MONGODB_URI environment variable is required");
     }
-    return this.data!;
+    this.client = new MongoClient(uri);
   }
 
-  private async save(): Promise<void> {
-    if (!this.data) return;
-    await fs.writeFile(DATA_FILE, JSON.stringify(this.data, null, 2));
+  private async connect(): Promise<void> {
+    if (this.db) return;
+    await this.client.connect();
+    this.db = this.client.db();
+    this.incomeCollection = this.db.collection("income");
+    this.outcomeCollection = this.db.collection("outcome");
+    this.countersCollection = this.db.collection("counters");
+    
+    // Initialize counters if they don't exist
+    await this.countersCollection.updateOne(
+      { _id: "incomeId" },
+      { $setOnInsert: { seq: 0 } },
+      { upsert: true }
+    );
+    await this.countersCollection.updateOne(
+      { _id: "outcomeId" },
+      { $setOnInsert: { seq: 0 } },
+      { upsert: true }
+    );
+  }
+
+  private async getNextId(name: string): Promise<number> {
+    await this.connect();
+    const result = await this.countersCollection!.findOneAndUpdate(
+      { _id: name },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after" }
+    );
+    return result!.seq;
   }
 
   async getIncome(): Promise<Income[]> {
-    const data = await this.load();
-    return [...data.income].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    await this.connect();
+    const docs = await this.incomeCollection!.find({}).sort({ date: -1 }).toArray();
+    return docs.map(doc => ({
+      id: doc.id,
+      amount: doc.amount,
+      category: doc.category,
+      description: doc.description ?? null,
+      date: new Date(doc.date)
+    }));
   }
 
   async createIncome(insert: InsertIncome): Promise<Income> {
-    const data = await this.load();
+    await this.connect();
+    const id = await this.getNextId("incomeId");
     const record: Income = {
-      ...insert,
-      id: data.nextIncomeId++,
-      date: insert.date ? new Date(insert.date) : new Date(),
+      id,
+      amount: insert.amount,
+      category: insert.category,
       description: insert.description ?? null,
+      date: insert.date ? new Date(insert.date) : new Date()
     };
-    data.income.push(record);
-    await this.save();
+    await this.incomeCollection!.insertOne({ ...record });
     return record;
   }
 
   async deleteIncome(id: number): Promise<void> {
-    const data = await this.load();
-    data.income = data.income.filter(t => t.id !== id);
-    await this.save();
+    await this.connect();
+    await this.incomeCollection!.deleteOne({ id });
   }
 
   async getOutcome(): Promise<Outcome[]> {
-    const data = await this.load();
-    return [...data.outcome].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    await this.connect();
+    const docs = await this.outcomeCollection!.find({}).sort({ date: -1 }).toArray();
+    return docs.map(doc => ({
+      id: doc.id,
+      amount: doc.amount,
+      category: doc.category,
+      description: doc.description ?? null,
+      date: new Date(doc.date)
+    }));
   }
 
   async createOutcome(insert: InsertOutcome): Promise<Outcome> {
-    const data = await this.load();
+    await this.connect();
+    const id = await this.getNextId("outcomeId");
     const record: Outcome = {
-      ...insert,
-      id: data.nextOutcomeId++,
-      date: insert.date ? new Date(insert.date) : new Date(),
+      id,
+      amount: insert.amount,
+      category: insert.category,
       description: insert.description ?? null,
+      date: insert.date ? new Date(insert.date) : new Date()
     };
-    data.outcome.push(record);
-    await this.save();
+    await this.outcomeCollection!.insertOne({ ...record });
     return record;
   }
 
   async deleteOutcome(id: number): Promise<void> {
-    const data = await this.load();
-    data.outcome = data.outcome.filter(t => t.id !== id);
-    await this.save();
+    await this.connect();
+    await this.outcomeCollection!.deleteOne({ id });
   }
 
   async getFinancialSummary(): Promise<FinancialSummary> {
-    const data = await this.load();
-    let totalIncome = 0;
-    let totalExpenses = 0;
+    await this.connect();
+    
+    const incomeResult = await this.incomeCollection!.aggregate([
+      { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
+    ]).toArray();
+    
+    const outcomeResult = await this.outcomeCollection!.aggregate([
+      { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
+    ]).toArray();
 
-    for (const t of data.income) {
-      totalIncome += Number(t.amount);
-    }
-    for (const t of data.outcome) {
-      totalExpenses += Number(t.amount);
-    }
-
+    const totalIncome = incomeResult[0]?.total ?? 0;
+    const totalExpenses = outcomeResult[0]?.total ?? 0;
     const netBalance = totalIncome - totalExpenses;
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
@@ -151,22 +156,23 @@ export class JsonStorage implements IStorage {
   }
 
   async getCategoryBreakdown(): Promise<CategoryBreakdown[]> {
-    const data = await this.load();
-    const categoryTotals = new Map<string, number>();
-    let totalExpenses = 0;
+    await this.connect();
+    
+    const totalResult = await this.outcomeCollection!.aggregate([
+      { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
+    ]).toArray();
+    const totalExpenses = totalResult[0]?.total ?? 0;
 
-    for (const t of data.outcome) {
-      const amount = Number(t.amount);
-      totalExpenses += amount;
-      categoryTotals.set(t.category, (categoryTotals.get(t.category) || 0) + amount);
-    }
+    const categoryResult = await this.outcomeCollection!.aggregate([
+      { $group: { _id: "$category", amount: { $sum: { $toDouble: "$amount" } } } }
+    ]).toArray();
 
-    return Array.from(categoryTotals.entries()).map(([category, amount]) => ({
-      category,
-      amount,
-      percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
+    return categoryResult.map(doc => ({
+      category: doc._id,
+      amount: doc.amount,
+      percentage: totalExpenses > 0 ? (doc.amount / totalExpenses) * 100 : 0
     }));
   }
 }
 
-export const storage = new JsonStorage();
+export const storage = new MongoStorage();
