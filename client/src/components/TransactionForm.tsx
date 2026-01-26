@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTransactionSchema } from "@shared/schema";
@@ -21,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 
 // Extend schema for form usage (handle string -> number coercion)
 const formSchema = insertTransactionSchema.extend({
@@ -30,9 +31,23 @@ const formSchema = insertTransactionSchema.extend({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const DEFAULT_CATEGORIES = [
+  "Housing",
+  "Transportation",
+  "Food",
+  "Utilities",
+  "Healthcare",
+  "Entertainment",
+  "Salary",
+  "Freelance",
+  "Other"
+];
+
 export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
   const mutation = useCreateTransaction();
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -52,6 +67,8 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
           description: "Your transaction has been recorded successfully.",
         });
         form.reset();
+        setShowCustomCategory(false);
+        setCustomCategory("");
         onSuccess();
       },
       onError: (error) => {
@@ -62,6 +79,14 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
         });
       },
     });
+  };
+
+  const handleAddCustomCategory = () => {
+    if (customCategory.trim()) {
+      form.setValue("category", customCategory.trim());
+      setShowCustomCategory(false);
+      setCustomCategory("");
+    }
   };
 
   return (
@@ -108,25 +133,66 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
           name="category"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Housing">Housing</SelectItem>
-                  <SelectItem value="Transportation">Transportation</SelectItem>
-                  <SelectItem value="Food">Food</SelectItem>
-                  <SelectItem value="Utilities">Utilities</SelectItem>
-                  <SelectItem value="Healthcare">Healthcare</SelectItem>
-                  <SelectItem value="Entertainment">Entertainment</SelectItem>
-                  <SelectItem value="Salary">Salary</SelectItem>
-                  <SelectItem value="Freelance">Freelance</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormLabel className="flex justify-between items-center">
+                Category
+                {!showCustomCategory && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setShowCustomCategory(true)}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    New Category
+                  </Button>
+                )}
+              </FormLabel>
+              
+              {showCustomCategory ? (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter category name"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    className="flex-1"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={handleAddCustomCategory}
+                    disabled={!customCategory.trim()}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setShowCustomCategory(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {DEFAULT_CATEGORIES.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                    {field.value && !DEFAULT_CATEGORIES.includes(field.value) && (
+                      <SelectItem value={field.value}>{field.value}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
               <FormMessage />
             </FormItem>
           )}
