@@ -103,7 +103,7 @@ export default function Transactions() {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-right font-bold text-green-600">
-                              +${Number(tx.amount).toFixed(2)}
+                              +₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-4 text-center">
                               <AlertDialog>
@@ -183,7 +183,7 @@ export default function Transactions() {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-right font-bold text-red-600">
-                              -${Number(tx.amount).toFixed(2)}
+                              -₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-4 text-center">
                               <AlertDialog>

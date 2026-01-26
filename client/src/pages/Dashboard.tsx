@@ -67,19 +67,19 @@ export default function Dashboard() {
               <>
                 <StatCard 
                   title="Total Balance" 
-                  value={`$${summary?.netBalance.toFixed(2) || '0.00'}`} 
+                  value={`₹${summary?.netBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`} 
                   icon={Wallet} 
                   color="primary" 
                 />
                 <StatCard 
                   title="Total Income" 
-                  value={`$${summary?.totalIncome.toFixed(2) || '0.00'}`} 
+                  value={`₹${summary?.totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`} 
                   icon={TrendingUp} 
                   color="success" 
                 />
                 <StatCard 
                   title="Total Expenses" 
-                  value={`$${summary?.totalExpenses.toFixed(2) || '0.00'}`} 
+                  value={`₹${summary?.totalExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`} 
                   icon={TrendingDown} 
                   color="destructive" 
                 />
@@ -146,7 +146,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <span className={`font-semibold text-sm ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                        {tx.type === 'income' ? '+' : '-'}${Number(tx.amount).toFixed(2)}
+                        {tx.type === 'income' ? '+' : '-'}₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   ))
