@@ -11,7 +11,9 @@ export async function registerRoutes(
   
   // Income
   app.get(api.income.list.path, async (req, res) => {
-    const items = await storage.getIncome();
+    const month = req.query.month ? Number(req.query.month) : undefined;
+    const year = req.query.year ? Number(req.query.year) : undefined;
+    const items = await storage.getIncome(month, year);
     res.json(items);
   });
 
@@ -56,7 +58,9 @@ export async function registerRoutes(
 
   // Outcome
   app.get(api.outcome.list.path, async (req, res) => {
-    const items = await storage.getOutcome();
+    const month = req.query.month ? Number(req.query.month) : undefined;
+    const year = req.query.year ? Number(req.query.year) : undefined;
+    const items = await storage.getOutcome(month, year);
     res.json(items);
   });
 
@@ -101,12 +105,16 @@ export async function registerRoutes(
 
   // Analytics
   app.get(api.analytics.summary.path, async (req, res) => {
-    const summary = await storage.getFinancialSummary();
+    const month = req.query.month ? Number(req.query.month) : undefined;
+    const year = req.query.year ? Number(req.query.year) : undefined;
+    const summary = await storage.getFinancialSummary(month, year);
     res.json(summary);
   });
 
   app.get(api.analytics.categoryBreakdown.path, async (req, res) => {
-    const breakdown = await storage.getCategoryBreakdown();
+    const month = req.query.month ? Number(req.query.month) : undefined;
+    const year = req.query.year ? Number(req.query.year) : undefined;
+    const breakdown = await storage.getCategoryBreakdown(month, year);
     res.json(breakdown);
   });
 

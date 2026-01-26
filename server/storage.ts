@@ -6,18 +6,18 @@ import {
 import { MongoClient, Db, Collection, ObjectId } from "mongodb";
 
 export interface IStorage {
-  getIncome(): Promise<Income[]>;
+  getIncome(month?: number, year?: number): Promise<Income[]>;
   createIncome(data: InsertIncome): Promise<Income>;
   deleteIncome(id: number): Promise<void>;
   updateIncome(id: number, data: Partial<InsertIncome>): Promise<Income>;
   
-  getOutcome(): Promise<Outcome[]>;
+  getOutcome(month?: number, year?: number): Promise<Outcome[]>;
   createOutcome(data: InsertOutcome): Promise<Outcome>;
   deleteOutcome(id: number): Promise<void>;
   updateOutcome(id: number, data: Partial<InsertOutcome>): Promise<Outcome>;
 
-  getFinancialSummary(): Promise<FinancialSummary>;
-  getCategoryBreakdown(): Promise<CategoryBreakdown[]>;
+  getFinancialSummary(month?: number, year?: number): Promise<FinancialSummary>;
+  getCategoryBreakdown(month?: number, year?: number): Promise<CategoryBreakdown[]>;
 }
 
 interface CounterDoc {
@@ -68,9 +68,15 @@ export class MongoStorage implements IStorage {
     return result!.seq;
   }
 
-  async getIncome(): Promise<Income[]> {
+  async getIncome(month?: number, year?: number): Promise<Income[]> {
     await this.connect();
-    const docs = await this.incomeCollection!.find({}).sort({ date: -1 }).toArray();
+    let query: any = {};
+    if (month !== undefined && year !== undefined) {
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 1);
+      query.date = { $gte: start, $lt: end };
+    }
+    const docs = await this.incomeCollection!.find(query).sort({ date: -1 }).toArray();
     return docs.map(doc => ({
       id: doc.id,
       amount: doc.amount,
@@ -121,9 +127,15 @@ export class MongoStorage implements IStorage {
     };
   }
 
-  async getOutcome(): Promise<Outcome[]> {
+  async getOutcome(month?: number, year?: number): Promise<Outcome[]> {
     await this.connect();
-    const docs = await this.outcomeCollection!.find({}).sort({ date: -1 }).toArray();
+    let query: any = {};
+    if (month !== undefined && year !== undefined) {
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 1);
+      query.date = { $gte: start, $lt: end };
+    }
+    const docs = await this.outcomeCollection!.find(query).sort({ date: -1 }).toArray();
     return docs.map(doc => ({
       id: doc.id,
       amount: doc.amount,
@@ -174,14 +186,23 @@ export class MongoStorage implements IStorage {
     };
   }
 
-  async getFinancialSummary(): Promise<FinancialSummary> {
+  async getFinancialSummary(month?: number, year?: number): Promise<FinancialSummary> {
     await this.connect();
     
+    let match: any = {};
+    if (month !== undefined && year !== undefined) {
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 1);
+      match.date = { $gte: start, $lt: end };
+    }
+
     const incomeResult = await this.incomeCollection!.aggregate([
+      { $match: match },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
     
     const outcomeResult = await this.outcomeCollection!.aggregate([
+      { $match: match },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
 
@@ -198,15 +219,24 @@ export class MongoStorage implements IStorage {
     };
   }
 
-  async getCategoryBreakdown(): Promise<CategoryBreakdown[]> {
+  async getCategoryBreakdown(month?: number, year?: number): Promise<CategoryBreakdown[]> {
     await this.connect();
     
+    let match: any = {};
+    if (month !== undefined && year !== undefined) {
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 1);
+      match.date = { $gte: start, $lt: end };
+    }
+
     const totalResult = await this.outcomeCollection!.aggregate([
+      { $match: match },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
     const totalExpenses = totalResult[0]?.total ?? 0;
 
     const categoryResult = await this.outcomeCollection!.aggregate([
+      { $match: match },
       { $group: { _id: "$category", amount: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
 
