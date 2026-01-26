@@ -1,5 +1,6 @@
 import {
-  type Transaction, type InsertTransaction,
+  type Income, type InsertIncome,
+  type Outcome, type InsertOutcome,
   type FinancialSummary, type CategoryBreakdown
 } from "@shared/schema";
 import fs from "fs/promises";
@@ -8,14 +9,21 @@ import path from "path";
 const DATA_FILE = path.join(process.cwd(), "data.json");
 
 interface LocalData {
-  transactions: Transaction[];
-  nextTransactionId: number;
+  income: Income[];
+  outcome: Outcome[];
+  nextIncomeId: number;
+  nextOutcomeId: number;
 }
 
 export interface IStorage {
-  getTransactions(): Promise<Transaction[]>;
-  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
-  deleteTransaction(id: number): Promise<void>;
+  getIncome(): Promise<Income[]>;
+  createIncome(data: InsertIncome): Promise<Income>;
+  deleteIncome(id: number): Promise<void>;
+  
+  getOutcome(): Promise<Outcome[]>;
+  createOutcome(data: InsertOutcome): Promise<Outcome>;
+  deleteOutcome(id: number): Promise<void>;
+
   getFinancialSummary(): Promise<FinancialSummary>;
   getCategoryBreakdown(): Promise<CategoryBreakdown[]>;
 }
@@ -27,17 +35,39 @@ export class JsonStorage implements IStorage {
     if (this.data) return this.data;
     try {
       const content = await fs.readFile(DATA_FILE, "utf-8");
-      this.data = JSON.parse(content);
-      // Clean up any budget related data if exists in JSON
-      if ((this.data as any).budgets) {
-        delete (this.data as any).budgets;
-        delete (this.data as any).nextBudgetId;
+      const parsed = JSON.parse(content);
+      
+      // Migration logic if converting from old transactions structure
+      if (parsed.transactions) {
+        const income: Income[] = [];
+        const outcome: Outcome[] = [];
+        let nextIncomeId = 1;
+        let nextOutcomeId = 1;
+
+        for (const t of parsed.transactions) {
+          if (t.type === 'income') {
+            income.push({ ...t, id: nextIncomeId++ });
+          } else {
+            outcome.push({ ...t, id: nextOutcomeId++ });
+          }
+        }
+        
+        this.data = {
+          income,
+          outcome,
+          nextIncomeId,
+          nextOutcomeId
+        };
         await this.save();
+      } else {
+        this.data = parsed;
       }
     } catch (e) {
       this.data = {
-        transactions: [],
-        nextTransactionId: 1,
+        income: [],
+        outcome: [],
+        nextIncomeId: 1,
+        nextOutcomeId: 1,
       };
       await this.save();
     }
@@ -49,49 +79,72 @@ export class JsonStorage implements IStorage {
     await fs.writeFile(DATA_FILE, JSON.stringify(this.data, null, 2));
   }
 
-  async getTransactions(): Promise<Transaction[]> {
+  async getIncome(): Promise<Income[]> {
     const data = await this.load();
-    return [...data.transactions].sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    return [...data.income].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 
-  async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
+  async createIncome(insert: InsertIncome): Promise<Income> {
     const data = await this.load();
-    const transaction: Transaction = {
-      ...insertTransaction,
-      id: data.nextTransactionId++,
-      date: insertTransaction.date ? new Date(insertTransaction.date) : new Date(),
-      description: insertTransaction.description ?? null,
+    const record: Income = {
+      ...insert,
+      id: data.nextIncomeId++,
+      date: insert.date ? new Date(insert.date) : new Date(),
+      description: insert.description ?? null,
     };
-    data.transactions.push(transaction);
+    data.income.push(record);
     await this.save();
-    return transaction;
+    return record;
   }
 
-  async deleteTransaction(id: number): Promise<void> {
+  async deleteIncome(id: number): Promise<void> {
     const data = await this.load();
-    data.transactions = data.transactions.filter(t => t.id !== id);
+    data.income = data.income.filter(t => t.id !== id);
+    await this.save();
+  }
+
+  async getOutcome(): Promise<Outcome[]> {
+    const data = await this.load();
+    return [...data.outcome].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async createOutcome(insert: InsertOutcome): Promise<Outcome> {
+    const data = await this.load();
+    const record: Outcome = {
+      ...insert,
+      id: data.nextOutcomeId++,
+      date: insert.date ? new Date(insert.date) : new Date(),
+      description: insert.description ?? null,
+    };
+    data.outcome.push(record);
+    await this.save();
+    return record;
+  }
+
+  async deleteOutcome(id: number): Promise<void> {
+    const data = await this.load();
+    data.outcome = data.outcome.filter(t => t.id !== id);
     await this.save();
   }
 
   async getFinancialSummary(): Promise<FinancialSummary> {
     const data = await this.load();
-    let income = 0;
-    let expenses = 0;
+    let totalIncome = 0;
+    let totalExpenses = 0;
 
-    for (const t of data.transactions) {
-      const amount = Number(t.amount);
-      if (t.type === 'income') income += amount;
-      else expenses += amount;
+    for (const t of data.income) {
+      totalIncome += Number(t.amount);
+    }
+    for (const t of data.outcome) {
+      totalExpenses += Number(t.amount);
     }
 
-    const netBalance = income - expenses;
-    const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0;
+    const netBalance = totalIncome - totalExpenses;
+    const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
     return {
-      totalIncome: income,
-      totalExpenses: expenses,
+      totalIncome,
+      totalExpenses,
       netBalance,
       savingsRate
     };
@@ -102,12 +155,10 @@ export class JsonStorage implements IStorage {
     const categoryTotals = new Map<string, number>();
     let totalExpenses = 0;
 
-    for (const t of data.transactions) {
-      if (t.type === 'expense') {
-        const amount = Number(t.amount);
-        totalExpenses += amount;
-        categoryTotals.set(t.category, (categoryTotals.get(t.category) || 0) + amount);
-      }
+    for (const t of data.outcome) {
+      const amount = Number(t.amount);
+      totalExpenses += amount;
+      categoryTotals.set(t.category, (categoryTotals.get(t.category) || 0) + amount);
     }
 
     return Array.from(categoryTotals.entries()).map(([category, amount]) => ({

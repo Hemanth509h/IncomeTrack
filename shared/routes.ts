@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertTransactionSchema, transactions } from './schema';
+import { insertIncomeSchema, insertOutcomeSchema, income, outcome } from './schema';
 
 // ============================================
 // SHARED ERROR SCHEMAS
@@ -21,34 +21,52 @@ export const errorSchemas = {
 // API CONTRACT
 // ============================================
 export const api = {
-  transactions: {
+  income: {
     list: {
       method: 'GET' as const,
-      path: '/api/transactions',
+      path: '/api/income',
       responses: {
-        200: z.array(z.custom<typeof transactions.$inferSelect>()),
-      },
-    },
-    get: {
-      method: 'GET' as const,
-      path: '/api/transactions/:id',
-      responses: {
-        200: z.custom<typeof transactions.$inferSelect>(),
-        404: errorSchemas.notFound,
+        200: z.array(z.custom<typeof income.$inferSelect>()),
       },
     },
     create: {
       method: 'POST' as const,
-      path: '/api/transactions',
-      input: insertTransactionSchema,
+      path: '/api/income',
+      input: insertIncomeSchema,
       responses: {
-        201: z.custom<typeof transactions.$inferSelect>(),
+        201: z.custom<typeof income.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
     delete: {
       method: 'DELETE' as const,
-      path: '/api/transactions/:id',
+      path: '/api/income/:id',
+      responses: {
+        204: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  outcome: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/outcome',
+      responses: {
+        200: z.array(z.custom<typeof outcome.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/outcome',
+      input: insertOutcomeSchema,
+      responses: {
+        201: z.custom<typeof outcome.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/outcome/:id',
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,

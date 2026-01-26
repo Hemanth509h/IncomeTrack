@@ -1,13 +1,15 @@
 {
-  "transactions": [
+  "income": [
     {
       "type": "income",
       "amount": "5000.00",
       "category": "Salary",
       "date": "2026-01-01T00:00:00.000Z",
       "description": "Monthly Salary",
-      "id": 17
+      "id": 1
     }
   ],
-  "nextTransactionId": 21
+  "outcome": [],
+  "nextIncomeId": 2,
+  "nextOutcomeId": 1
 }

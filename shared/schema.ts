@@ -4,9 +4,16 @@ import { z } from "zod";
 
 // === TABLE DEFINITIONS ===
 
-export const transactions = pgTable("transactions", {
+export const income = pgTable("income", {
   id: serial("id").primaryKey(),
-  type: text("type").notNull(), // 'income' or 'expense'
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  category: text("category").notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  description: text("description"),
+});
+
+export const outcome = pgTable("outcome", {
+  id: serial("id").primaryKey(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   category: text("category").notNull(),
   date: timestamp("date").defaultNow().notNull(),
@@ -14,19 +21,20 @@ export const transactions = pgTable("transactions", {
 });
 
 // === BASE SCHEMAS ===
-export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true });
+export const insertIncomeSchema = createInsertSchema(income).omit({ id: true });
+export const insertOutcomeSchema = createInsertSchema(outcome).omit({ id: true });
 
 // === EXPLICIT API CONTRACT TYPES ===
 
-export type Transaction = typeof transactions.$inferSelect;
-export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Income = typeof income.$inferSelect;
+export type InsertIncome = z.infer<typeof insertIncomeSchema>;
 
-// Request types
-export type CreateTransactionRequest = InsertTransaction;
-export type UpdateTransactionRequest = Partial<InsertTransaction>;
+export type Outcome = typeof outcome.$inferSelect;
+export type InsertOutcome = z.infer<typeof insertOutcomeSchema>;
 
 // Response types
-export type TransactionResponse = Transaction;
+export type IncomeResponse = Income;
+export type OutcomeResponse = Outcome;
 
 // Analytics types
 export interface FinancialSummary {
