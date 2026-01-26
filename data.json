@@ -1,21 +1,4 @@
 {
-  "transactions": [
-    {
-      "type": "income",
-      "amount": "5000.00",
-      "category": "Salary",
-      "date": "2026-01-01T00:00:00.000Z",
-      "description": "Monthly Salary",
-      "id": 13
-    },
-    {
-      "type": "expense",
-      "amount": "1200.00",
-      "category": "Rent",
-      "date": "2026-01-05T00:00:00.000Z",
-      "description": "Apartment Rent",
-      "id": 14
-    }
-  ],
+  "transactions": [],
   "nextTransactionId": 17
 }

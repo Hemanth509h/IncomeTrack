@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Transactions", href: "/transactions", icon: Receipt },
-  { label: "Budgets", href: "/budgets", icon: Wallet },
 ];
 
 export function Sidebar() {
