@@ -72,8 +72,9 @@ export class MongoStorage implements IStorage {
     await this.connect();
     let query: any = {};
     if (month !== undefined && year !== undefined) {
-      const start = new Date(year, month, 1);
-      const end = new Date(year, month + 1, 1);
+      // Use UTC dates to avoid timezone issues when filtering by month
+      const start = new Date(Date.UTC(year, month, 1));
+      const end = new Date(Date.UTC(year, month + 1, 1));
       query.date = { $gte: start, $lt: end };
     }
     const docs = await this.incomeCollection!.find(query).sort({ date: -1 }).toArray();
@@ -131,8 +132,9 @@ export class MongoStorage implements IStorage {
     await this.connect();
     let query: any = {};
     if (month !== undefined && year !== undefined) {
-      const start = new Date(year, month, 1);
-      const end = new Date(year, month + 1, 1);
+      // Use UTC dates to avoid timezone issues when filtering by month
+      const start = new Date(Date.UTC(year, month, 1));
+      const end = new Date(Date.UTC(year, month + 1, 1));
       query.date = { $gte: start, $lt: end };
     }
     const docs = await this.outcomeCollection!.find(query).sort({ date: -1 }).toArray();
@@ -191,8 +193,9 @@ export class MongoStorage implements IStorage {
     
     let match: any = {};
     if (month !== undefined && year !== undefined) {
-      const start = new Date(year, month, 1);
-      const end = new Date(year, month + 1, 1);
+      // Use UTC dates to avoid timezone issues when filtering by month
+      const start = new Date(Date.UTC(year, month, 1));
+      const end = new Date(Date.UTC(year, month + 1, 1));
       match.date = { $gte: start, $lt: end };
     }
 
@@ -224,8 +227,9 @@ export class MongoStorage implements IStorage {
     
     let match: any = {};
     if (month !== undefined && year !== undefined) {
-      const start = new Date(year, month, 1);
-      const end = new Date(year, month + 1, 1);
+      // Use UTC dates to avoid timezone issues when filtering by month
+      const start = new Date(Date.UTC(year, month, 1));
+      const end = new Date(Date.UTC(year, month + 1, 1));
       match.date = { $gte: start, $lt: end };
     }
 
