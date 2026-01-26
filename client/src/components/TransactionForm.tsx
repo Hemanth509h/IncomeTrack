@@ -22,14 +22,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X, Calendar as CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const incomeFormSchema = insertIncomeSchema.extend({
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
+  date: z.date({
+    required_error: "A date is required",
+  }),
 });
 
 const outcomeFormSchema = insertOutcomeSchema.extend({
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
+  date: z.date({
+    required_error: "A date is required",
+  }),
 });
 
 const DEFAULT_CATEGORIES = [
@@ -58,6 +68,7 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
       category: "",
       description: "",
       amount: undefined as any,
+      date: new Date(),
     },
   });
 
@@ -66,13 +77,19 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
     mutation.mutate({
       ...data,
       amount: data.amount.toString(),
+      date: data.date.toISOString(),
     }, {
       onSuccess: () => {
         toast({
           title: "Transaction Added",
           description: "Your transaction has been recorded successfully.",
         });
-        form.reset();
+        form.reset({
+          category: "",
+          description: "",
+          amount: undefined as any,
+          date: new Date(),
+        });
         setShowCustomCategory(false);
         setCustomCategory("");
         onSuccess();
@@ -98,20 +115,64 @@ export function TransactionForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormItem>
-          <FormLabel>Type</FormLabel>
-          <Select value={type} onValueChange={(v: any) => setType(v)}>
-            <FormControl>
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="outcome">Outcome</SelectItem>
-            </SelectContent>
-          </Select>
-        </FormItem>
+        <div className="grid grid-cols-2 gap-4">
+          <FormItem>
+            <FormLabel>Type</FormLabel>
+            <Select value={type} onValueChange={(v: any) => setType(v)}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="income">Income</SelectItem>
+                <SelectItem value="outcome">Outcome</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormItem>
+
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className="mb-1">Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
