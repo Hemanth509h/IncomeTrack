@@ -1,0 +1,58 @@
+{
+  "transactions": [
+    {
+      "type": "income",
+      "amount": "5000.00",
+      "category": "Salary",
+      "date": "2026-01-01T00:00:00.000Z",
+      "description": "Monthly Salary",
+      "id": 1
+    },
+    {
+      "type": "expense",
+      "amount": "1200.00",
+      "category": "Rent",
+      "date": "2026-01-05T00:00:00.000Z",
+      "description": "Apartment Rent",
+      "id": 2
+    },
+    {
+      "type": "expense",
+      "amount": "450.00",
+      "category": "Groceries",
+      "date": "2026-01-10T00:00:00.000Z",
+      "description": "Weekly groceries",
+      "id": 3
+    },
+    {
+      "type": "expense",
+      "amount": "150.00",
+      "category": "Utilities",
+      "date": "2026-01-15T00:00:00.000Z",
+      "description": "Electricity Bill",
+      "id": 4
+    }
+  ],
+  "budgets": [
+    {
+      "category": "Rent",
+      "limit": "1200.00",
+      "period": "monthly",
+      "id": 1
+    },
+    {
+      "category": "Groceries",
+      "limit": "600.00",
+      "period": "monthly",
+      "id": 2
+    },
+    {
+      "category": "Entertainment",
+      "limit": "300.00",
+      "period": "monthly",
+      "id": 3
+    }
+  ],
+  "nextTransactionId": 5,
+  "nextBudgetId": 4
+}

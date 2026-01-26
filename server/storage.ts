@@ -1,11 +1,19 @@
-import { db } from "./db";
 import {
-  transactions, budgets,
   type Transaction, type InsertTransaction,
   type Budget, type InsertBudget,
   type FinancialSummary, type CategoryBreakdown
 } from "@shared/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import fs from "fs/promises";
+import path from "path";
+
+const DATA_FILE = path.join(process.cwd(), "data.json");
+
+interface LocalData {
+  transactions: Transaction[];
+  budgets: Budget[];
+  nextTransactionId: number;
+  nextBudgetId: number;
+}
 
 export interface IStorage {
   getTransactions(): Promise<Transaction[]>;
@@ -18,48 +26,89 @@ export interface IStorage {
   getCategoryBreakdown(): Promise<CategoryBreakdown[]>;
 }
 
-export class DatabaseStorage implements IStorage {
+export class JsonStorage implements IStorage {
+  private data: LocalData | null = null;
+
+  private async load(): Promise<LocalData> {
+    if (this.data) return this.data;
+    try {
+      const content = await fs.readFile(DATA_FILE, "utf-8");
+      this.data = JSON.parse(content);
+    } catch (e) {
+      this.data = {
+        transactions: [],
+        budgets: [],
+        nextTransactionId: 1,
+        nextBudgetId: 1,
+      };
+      await this.save();
+    }
+    return this.data!;
+  }
+
+  private async save(): Promise<void> {
+    if (!this.data) return;
+    await fs.writeFile(DATA_FILE, JSON.stringify(this.data, null, 2));
+  }
+
   async getTransactions(): Promise<Transaction[]> {
-    return await db.select().from(transactions).orderBy(desc(transactions.date));
+    const data = await this.load();
+    return [...data.transactions].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
   }
 
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
-    const [transaction] = await db
-      .insert(transactions)
-      .values(insertTransaction)
-      .returning();
+    const data = await this.load();
+    const transaction: Transaction = {
+      ...insertTransaction,
+      id: data.nextTransactionId++,
+      date: insertTransaction.date ? new Date(insertTransaction.date) : new Date(),
+    };
+    data.transactions.push(transaction);
+    await this.save();
     return transaction;
   }
 
   async deleteTransaction(id: number): Promise<void> {
-    await db.delete(transactions).where(eq(transactions.id, id));
+    const data = await this.load();
+    data.transactions = data.transactions.filter(t => t.id !== id);
+    await this.save();
   }
 
   async getBudgets(): Promise<Budget[]> {
-    return await db.select().from(budgets);
+    const data = await this.load();
+    return data.budgets;
   }
 
   async createBudget(insertBudget: InsertBudget): Promise<Budget> {
-    const [budget] = await db.insert(budgets).values(insertBudget).returning();
+    const data = await this.load();
+    const budget: Budget = {
+      ...insertBudget,
+      id: data.nextBudgetId++,
+    };
+    data.budgets.push(budget);
+    await this.save();
     return budget;
   }
 
   async deleteBudget(id: number): Promise<void> {
-    await db.delete(budgets).where(eq(budgets.id, id));
+    const data = await this.load();
+    data.budgets = data.budgets.filter(b => b.id !== id);
+    await this.save();
   }
 
   async getFinancialSummary(): Promise<FinancialSummary> {
-    // Calculate totals
-    const result = await db
-      .select({
-        totalIncome: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'income' THEN ${transactions.amount} ELSE 0 END), 0)`,
-        totalExpenses: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END), 0)`
-      })
-      .from(transactions);
+    const data = await this.load();
+    let income = 0;
+    let expenses = 0;
 
-    const { totalIncome, totalExpenses } = result[0];
-    const income = Number(totalIncome);
-    const expenses = Number(totalExpenses);
+    for (const t of data.transactions) {
+      const amount = Number(t.amount);
+      if (t.type === 'income') income += amount;
+      else expenses += amount;
+    }
+
     const netBalance = income - expenses;
     const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0;
 
@@ -72,28 +121,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCategoryBreakdown(): Promise<CategoryBreakdown[]> {
-    const totalExpensesResult = await db
-      .select({ total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` })
-      .from(transactions)
-      .where(eq(transactions.type, 'expense'));
-    
-    const totalExpenses = Number(totalExpensesResult[0].total);
+    const data = await this.load();
+    const categoryTotals = new Map<string, number>();
+    let totalExpenses = 0;
 
-    const breakdown = await db
-      .select({
-        category: transactions.category,
-        amount: sql<number>`SUM(${transactions.amount})`
-      })
-      .from(transactions)
-      .where(eq(transactions.type, 'expense'))
-      .groupBy(transactions.category);
+    for (const t of data.transactions) {
+      if (t.type === 'expense') {
+        const amount = Number(t.amount);
+        totalExpenses += amount;
+        categoryTotals.set(t.category, (categoryTotals.get(t.category) || 0) + amount);
+      }
+    }
 
-    return breakdown.map(item => ({
-      category: item.category,
-      amount: Number(item.amount),
-      percentage: totalExpenses > 0 ? (Number(item.amount) / totalExpenses) * 100 : 0
+    return Array.from(categoryTotals.entries()).map(([category, amount]) => ({
+      category,
+      amount,
+      percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
     }));
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new JsonStorage();
