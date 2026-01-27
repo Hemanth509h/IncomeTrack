@@ -43,14 +43,9 @@ const outcomeFormSchema = insertOutcomeSchema.extend({
 });
 
 const DEFAULT_CATEGORIES = [
-  "Housing",
-  "Transportation",
-  "Food",
-  "Utilities",
-  "Healthcare",
-  "Entertainment",
-  "Salary",
-  "Freelance",
+  "Canteen",
+  "Auto",
+  "Canteen Auto",
   "Other"
 ];
 
