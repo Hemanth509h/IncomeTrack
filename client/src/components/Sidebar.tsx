@@ -16,7 +16,7 @@ export function Sidebar() {
     <div className="flex flex-col h-full">
       <div className="p-6 border-b border-border/40">
         <h1 className="text-2xl font-display font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          FinTrack
+          IncomeTrack
         </h1>
         <p className="text-xs text-muted-foreground mt-1 font-medium">Smart Money Management</p>
       </div>
