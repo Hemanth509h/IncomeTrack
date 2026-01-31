@@ -1,8 +1,8 @@
-import { useFinancialSummary, useCategoryBreakdown, useAdjustBalance } from "@/hooks/use-analytics";
+import { useFinancialSummary, useCategoryBreakdown, useAdjustBalance, useResetData } from "@/hooks/use-analytics";
 import { useIncome, useOutcome } from "@/hooks/use-transactions";
 import { Sidebar } from "@/components/Sidebar";
 import { StatCard } from "@/components/StatCard";
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ChevronLeft, ChevronRight, Pencil, RefreshCcw } from "lucide-react";
 import { Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useMonth } from "@/hooks/use-month";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const { data: income, isLoading: isIncomeLoading } = useIncome(month, year);
   const { data: outcome, isLoading: isOutcomeLoading } = useOutcome(month, year);
   const adjustBalance = useAdjustBalance();
+  const resetData = useResetData();
   
   const [isTxOpen, setIsTxOpen] = useState(false);
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
@@ -37,6 +39,17 @@ export default function Dashboard() {
       setAdjustAmount(summary.netBalance.toString());
     }
   }, [summary]);
+
+  const handleRecalculate = () => {
+    resetData.mutate(undefined, {
+      onSuccess: () => {
+        toast({
+          title: "Recalculation Complete",
+          description: "All transactions and balances have been refreshed.",
+        });
+      },
+    });
+  };
 
   const handleAdjustBalance = () => {
     const amount = parseFloat(adjustAmount);
@@ -87,19 +100,32 @@ export default function Dashboard() {
               <p className="text-muted-foreground">Welcome back, here's your financial summary.</p>
             </div>
             
-            <Dialog open={isTxOpen} onOpenChange={setIsTxOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20 px-6 h-12">
-                  <Plus className="w-5 h-5 mr-2" /> Add Transaction
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] rounded-2xl">
-                <DialogHeader>
-                  <DialogTitle>Add New Transaction</DialogTitle>
-                </DialogHeader>
-                <TransactionForm onSuccess={() => setIsTxOpen(false)} />
-              </DialogContent>
-            </Dialog>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="icon"
+                className="h-12 w-12 rounded-xl border-border/50 hover:bg-muted"
+                onClick={handleRecalculate}
+                disabled={resetData.isPending}
+                title="Recalculate all months"
+              >
+                <RefreshCcw className={cn("w-5 h-5", resetData.isPending && "animate-spin")} />
+              </Button>
+              
+              <Dialog open={isTxOpen} onOpenChange={setIsTxOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20 px-6 h-12">
+                    <Plus className="w-5 h-5 mr-2" /> Add Transaction
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px] rounded-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Add New Transaction</DialogTitle>
+                  </DialogHeader>
+                  <TransactionForm onSuccess={() => setIsTxOpen(false)} />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           {/* Stats Grid */}

@@ -58,21 +58,6 @@ export function Sidebar() {
         })}
       </nav>
       <div className="p-4 border-t border-border/40 space-y-2">
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10 rounded-xl px-4 py-3 h-auto"
-          onClick={() => {
-            handleReset();
-            toast({
-              title: "Calculating...",
-              description: "Refreshing transaction data.",
-            });
-          }}
-          disabled={resetData.isPending}
-        >
-          <RefreshCcw className={cn("w-5 h-5 mr-3", resetData.isPending && "animate-spin")} />
-          <span className="font-medium">Recalculate</span>
-        </Button>
         <div className="bg-card rounded-xl p-4 border border-border/50 shadow-sm">
           <h4 className="font-semibold text-sm">Pro Tip</h4>
           <p className="text-xs text-muted-foreground mt-1">
