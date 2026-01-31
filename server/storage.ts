@@ -261,12 +261,12 @@ export class MongoStorage implements IStorage {
         const currentBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0);
         manualAdjustment = adj.manualAdjustment - currentBalance;
       } else {
-        // Find the most recent adjustment BEFORE or ON this month/year
+        // Find the most recent adjustment STRICTLY BEFORE this month/year
         const prevAdjs = await this.metaCollection!.find({ 
           _id: { $regex: /^adjustment_/ },
           $or: [
             { year: { $lt: year } },
-            { year: year, month: { $lte: month } }
+            { year: year, month: { $lt: month } }
           ]
         }).sort({ year: -1, month: -1 }).limit(1).toArray();
         
@@ -299,7 +299,9 @@ export class MongoStorage implements IStorage {
 
     const totalIncome = incomeResult[0]?.total ?? 0;
     const totalExpenses = outcomeResult[0]?.total ?? 0;
-    const netBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0) + manualAdjustment;
+    
+    // Final balance is cumulative income - cumulative outcome + the calculated manual adjustment
+    const netBalance = Math.round((cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0) + manualAdjustment);
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
     return {
