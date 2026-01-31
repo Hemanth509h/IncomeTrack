@@ -34,7 +34,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (summary) {
-      setAdjustAmount(summary.manualAdjustment.toString());
+      setAdjustAmount(summary.netBalance.toString());
     }
   }, [summary]);
 
