@@ -44,6 +44,7 @@ const outcomeFormSchema = insertOutcomeSchema.extend({
 
 const DEFAULT_CATEGORIES = [
   "Canteen",
+  "Buss pass",
   "Auto",
   "Canteen Auto",
   "Other"
