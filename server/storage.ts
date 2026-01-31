@@ -251,7 +251,7 @@ export class MongoStorage implements IStorage {
     
     const allTimeIncome = cumulativeIncomeResult[0]?.total ?? 0;
     const allTimeExpenses = cumulativeOutcomeResult[0]?.total ?? 0;
-    const netBalance = allTimeIncome - allTimeExpenses + manualAdjustment;
+    const netBalance = manualAdjustment;
     
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
