@@ -42,12 +42,12 @@ export default function Dashboard() {
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount)) return;
 
-    adjustBalance.mutate(amount, {
+    adjustBalance.mutate({ amount, month, year }, {
       onSuccess: () => {
         setIsAdjustOpen(false);
         toast({
-          title: "Balance Adjusted",
-          description: "Your total balance has been manually adjusted.",
+          title: "Balance Set",
+          description: `Current balance for ${formattedMonth} has been set to ₹${amount.toLocaleString('en-IN')}.`,
         });
       },
     });

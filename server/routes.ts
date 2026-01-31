@@ -119,8 +119,8 @@ export async function registerRoutes(
   });
 
   app.post(api.analytics.adjustBalance.path, async (req, res) => {
-    const { amount } = api.analytics.adjustBalance.input.parse(req.body);
-    await storage.adjustBalance(amount);
+    const { amount, month, year } = api.analytics.adjustBalance.input.parse(req.body);
+    await storage.adjustBalance(amount, month, year);
     res.json({ success: true });
   });
 

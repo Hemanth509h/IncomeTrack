@@ -120,7 +120,11 @@ export const api = {
     adjustBalance: {
       method: 'POST' as const,
       path: '/api/analytics/adjust-balance',
-      input: z.object({ amount: z.number() }),
+      input: z.object({ 
+        amount: z.number(),
+        month: z.number().optional(),
+        year: z.number().optional()
+      }),
       responses: {
         200: z.object({ success: z.boolean() }),
       },

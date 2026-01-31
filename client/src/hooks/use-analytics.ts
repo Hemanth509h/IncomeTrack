@@ -26,8 +26,8 @@ export function useCategoryBreakdown(month?: number, year?: number) {
 export function useAdjustBalance() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (amount: number) => {
-      const res = await apiRequest(api.analytics.adjustBalance.method, api.analytics.adjustBalance.path, { amount });
+    mutationFn: async ({ amount, month, year }: { amount: number, month?: number, year?: number }) => {
+      const res = await apiRequest(api.analytics.adjustBalance.method, api.analytics.adjustBalance.path, { amount, month, year });
       return await res.json();
     },
     onSuccess: () => {

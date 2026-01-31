@@ -29,6 +29,8 @@ interface CounterDoc {
 
 interface MetaDoc {
   _id: string;
+  month?: number;
+  year?: number;
   manualAdjustment: number;
 }
 
@@ -63,13 +65,6 @@ export class MongoStorage implements IStorage {
     await this.countersCollection.updateOne(
       { _id: "outcomeId" },
       { $setOnInsert: { seq: 0 } },
-      { upsert: true }
-    );
-
-    // Initialize meta if it doesn't exist
-    await this.metaCollection.updateOne(
-      { _id: "settings" },
-      { $setOnInsert: { manualAdjustment: 0 } },
       { upsert: true }
     );
   }
@@ -204,26 +199,34 @@ export class MongoStorage implements IStorage {
     };
   }
 
-  async adjustBalance(amount: number): Promise<void> {
+  async adjustBalance(amount: number, month?: number, year?: number): Promise<void> {
     await this.connect();
-    await this.metaCollection!.updateOne(
-      { _id: "settings" },
-      { $set: { manualAdjustment: amount } }
-    );
+    if (month !== undefined && year !== undefined) {
+      await this.metaCollection!.updateOne(
+        { _id: `adjustment_${year}_${month}` },
+        { $set: { manualAdjustment: amount, month, year } },
+        { upsert: true }
+      );
+    } else {
+      await this.metaCollection!.updateOne(
+        { _id: "settings" },
+        { $set: { manualAdjustment: amount } }
+      );
+    }
   }
 
   async getFinancialSummary(month?: number, year?: number): Promise<FinancialSummary> {
     await this.connect();
     
     let match: any = {};
+    let cumulativeMatch: any = {};
     if (month !== undefined && year !== undefined) {
-      // Use UTC dates to avoid timezone issues when filtering by month
       const start = new Date(Date.UTC(year, month, 1));
       const end = new Date(Date.UTC(year, month + 1, 1));
       match.date = { $gte: start, $lt: end };
+      cumulativeMatch.date = { $lt: end };
     }
 
-    // Monthly totals for income and outcome
     const incomeResult = await this.incomeCollection!.aggregate([
       { $match: match },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
@@ -234,25 +237,60 @@ export class MongoStorage implements IStorage {
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
 
-    // Cumulative totals for absolute balance (all time)
     const cumulativeIncomeResult = await this.incomeCollection!.aggregate([
+      { $match: cumulativeMatch },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
     
     const cumulativeOutcomeResult = await this.outcomeCollection!.aggregate([
+      { $match: cumulativeMatch },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
 
-    const meta = await this.metaCollection!.findOne({ _id: "settings" });
-    const manualAdjustment = meta?.manualAdjustment ?? 0;
+    let manualAdjustment = 0;
+    if (month !== undefined && year !== undefined) {
+      const adj = await this.metaCollection!.findOne({ _id: `adjustment_${year}_${month}` });
+      if (adj) {
+        const allTimeIncome = cumulativeIncomeResult[0]?.total ?? 0;
+        const allTimeExpenses = cumulativeOutcomeResult[0]?.total ?? 0;
+        manualAdjustment = adj.manualAdjustment - (allTimeIncome - allTimeExpenses);
+      } else {
+        const prevAdjs = await this.metaCollection!.find({ 
+          _id: { $regex: /^adjustment_/ },
+          $or: [
+            { year: { $lt: year } },
+            { year: year, month: { $lt: month } }
+          ]
+        }).sort({ year: -1, month: -1 }).limit(1).toArray();
+        
+        if (prevAdjs.length > 0) {
+          const lastAdj = prevAdjs[0];
+          const adjEnd = new Date(Date.UTC(lastAdj.year!, lastAdj.month! + 1, 1));
+          const incomeAtAdj = await this.incomeCollection!.aggregate([
+            { $match: { date: { $lt: adjEnd } } },
+            { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
+          ]).toArray();
+          const outcomeAtAdj = await this.outcomeCollection!.aggregate([
+            { $match: { date: { $lt: adjEnd } } },
+            { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
+          ]).toArray();
+          
+          manualAdjustment = lastAdj.manualAdjustment - ((incomeAtAdj[0]?.total ?? 0) - (outcomeAtAdj[0]?.total ?? 0));
+        } else {
+          const meta = await this.metaCollection!.findOne({ _id: "settings" });
+          manualAdjustment = meta?.manualAdjustment ?? 0;
+        }
+      }
+    } else {
+      const meta = await this.metaCollection!.findOne({ _id: "settings" });
+      manualAdjustment = meta?.manualAdjustment ?? 0;
+    }
 
     const totalIncome = incomeResult[0]?.total ?? 0;
     const totalExpenses = outcomeResult[0]?.total ?? 0;
-    
-    const allTimeIncome = cumulativeIncomeResult[0]?.total ?? 0;
-    const allTimeExpenses = cumulativeOutcomeResult[0]?.total ?? 0;
-    const netBalance = allTimeIncome - allTimeExpenses + manualAdjustment;
-    
+    const currentIncome = cumulativeIncomeResult[0]?.total ?? 0;
+    const currentExpenses = cumulativeOutcomeResult[0]?.total ?? 0;
+    const netBalance = currentIncome - currentExpenses + manualAdjustment;
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
     return {
