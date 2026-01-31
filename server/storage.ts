@@ -226,12 +226,11 @@ export class MongoStorage implements IStorage {
     await this.connect();
     
     let match: any = {};
-    let cumulativeMatch: any = {};
+    const start = month !== undefined && year !== undefined ? new Date(Date.UTC(year, month, 1)) : new Date(0);
+    const end = month !== undefined && year !== undefined ? new Date(Date.UTC(year, month + 1, 1)) : new Date();
+
     if (month !== undefined && year !== undefined) {
-      const start = new Date(Date.UTC(year, month, 1));
-      const end = new Date(Date.UTC(year, month + 1, 1));
       match.date = { $gte: start, $lt: end };
-      cumulativeMatch.date = { $lt: end };
     }
 
     const incomeResult = await this.incomeCollection!.aggregate([
@@ -245,12 +244,12 @@ export class MongoStorage implements IStorage {
     ]).toArray();
 
     const cumulativeIncomeResult = await this.incomeCollection!.aggregate([
-      { $match: cumulativeMatch },
+      { $match: { date: { $lt: end } } },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
     
     const cumulativeOutcomeResult = await this.outcomeCollection!.aggregate([
-      { $match: cumulativeMatch },
+      { $match: { date: { $lt: end } } },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
 
@@ -300,8 +299,11 @@ export class MongoStorage implements IStorage {
     const totalIncome = incomeResult[0]?.total ?? 0;
     const totalExpenses = outcomeResult[0]?.total ?? 0;
     
+    // Calculate raw cumulative balance up to the end of this month
+    const rawCumulativeBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0);
+    
     // Final balance is cumulative income - cumulative outcome + the calculated manual adjustment
-    const netBalance = Math.round((cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0) + manualAdjustment);
+    const netBalance = Math.round(rawCumulativeBalance + manualAdjustment);
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
     return {
