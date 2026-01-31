@@ -131,10 +131,10 @@ export default function Dashboard() {
                       </DialogHeader>
                       <div className="py-4">
                         <p className="text-sm text-muted-foreground mb-4">
-                          Set your actual current balance manually.
+                          Enter a starting balance or manual adjustment. This will be added to your calculated total.
                         </p>
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Current Balance (₹)</label>
+                          <label className="text-sm font-medium">Adjustment / Starting Balance (₹)</label>
                           <Input 
                             type="number" 
                             step="0.01" 
