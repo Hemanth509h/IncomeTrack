@@ -210,12 +210,20 @@ export class MongoStorage implements IStorage {
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
 
-    // Cumulative totals for absolute balance
+    // Cumulative totals for balance up to the end of the selected month
+    let cumulativeMatch: any = {};
+    if (month !== undefined && year !== undefined) {
+      const end = new Date(Date.UTC(year, month + 1, 1));
+      cumulativeMatch.date = { $lt: end };
+    }
+
     const cumulativeIncomeResult = await this.incomeCollection!.aggregate([
+      { $match: cumulativeMatch },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
     
     const cumulativeOutcomeResult = await this.outcomeCollection!.aggregate([
+      { $match: cumulativeMatch },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
 
