@@ -217,19 +217,9 @@ export class MongoStorage implements IStorage {
 
   async resetData(): Promise<void> {
     await this.connect();
-    await Promise.all([
-      this.incomeCollection!.deleteMany({}),
-      this.outcomeCollection!.deleteMany({}),
-      this.metaCollection!.deleteMany({}),
-      this.countersCollection!.updateMany({}, { $set: { seq: 0 } })
-    ]);
-    
-    // Re-initialize settings
-    await this.metaCollection!.updateOne(
-      { _id: "settings" },
-      { $setOnInsert: { manualAdjustment: 0 } },
-      { upsert: true }
-    );
+    // Instead of deleting transactions, we just refresh the collections to ensure consistency
+    // No data deletion is performed here anymore as the user wants to "Recalculate"
+    return;
   }
 
   async getFinancialSummary(month?: number, year?: number): Promise<FinancialSummary> {
