@@ -111,7 +111,7 @@ export default function Dashboard() {
                 <div className="relative group">
                   <StatCard 
                     title="Total Balance" 
-                    value={`₹${summary?.netBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`} 
+                    value={`₹${summary?.netBalance.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}`} 
                     icon={Wallet} 
                     color="primary" 
                   />
@@ -137,10 +137,10 @@ export default function Dashboard() {
                           <label className="text-sm font-medium">Adjustment / Starting Balance (₹)</label>
                           <Input 
                             type="number" 
-                            step="0.01" 
+                            step="1" 
                             value={adjustAmount} 
                             onChange={(e) => setAdjustAmount(e.target.value)}
-                            placeholder="0.00"
+                            placeholder="0"
                           />
                         </div>
                       </div>
@@ -155,19 +155,19 @@ export default function Dashboard() {
                 </div>
                 <StatCard 
                   title="Total Income" 
-                  value={`₹${summary?.totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`} 
+                  value={`₹${summary?.totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}`} 
                   icon={TrendingUp} 
                   color="success" 
                 />
                 <StatCard 
                   title="Total Expenses" 
-                  value={`₹${summary?.totalExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`} 
+                  value={`₹${summary?.totalExpenses.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}`} 
                   icon={TrendingDown} 
                   color="destructive" 
                 />
                 <StatCard 
                   title="Savings Rate" 
-                  value={`${summary?.savingsRate.toFixed(1) || '0.0'}%`} 
+                  value={`${summary?.savingsRate.toFixed(0) || '0'}%`} 
                   icon={PiggyBank} 
                   color="warning" 
                 />
@@ -228,7 +228,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <span className={`font-semibold text-sm ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                        {tx.type === 'income' ? '+' : '-'}₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {tx.type === 'income' ? '+' : '-'}₹{Number(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </span>
                     </div>
                   ))
