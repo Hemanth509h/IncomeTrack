@@ -261,17 +261,21 @@ export class MongoStorage implements IStorage {
         const currentBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0);
         manualAdjustment = adj.manualAdjustment - currentBalance;
       } else {
+        // Find the most recent adjustment BEFORE or ON this month/year
         const prevAdjs = await this.metaCollection!.find({ 
           _id: { $regex: /^adjustment_/ },
           $or: [
             { year: { $lt: year } },
-            { year: year, month: { $lt: month } }
+            { year: year, month: { $lte: month } }
           ]
         }).sort({ year: -1, month: -1 }).limit(1).toArray();
         
         if (prevAdjs.length > 0) {
           const lastAdj = prevAdjs[0];
+          // If we found an adjustment, it sets the balance at the end of that month.
+          // We need to calculate how much to adjust the "raw" cumulative balance to match this.
           const adjEnd = new Date(Date.UTC(lastAdj.year!, lastAdj.month! + 1, 1));
+          
           const incomeAtAdj = await this.incomeCollection!.aggregate([
             { $match: { date: { $lt: adjEnd } } },
             { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
@@ -281,7 +285,8 @@ export class MongoStorage implements IStorage {
             { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
           ]).toArray();
           
-          manualAdjustment = lastAdj.manualAdjustment - ((incomeAtAdj[0]?.total ?? 0) - (outcomeAtAdj[0]?.total ?? 0));
+          const rawBalanceAtAdj = (incomeAtAdj[0]?.total ?? 0) - (outcomeAtAdj[0]?.total ?? 0);
+          manualAdjustment = lastAdj.manualAdjustment - rawBalanceAtAdj;
         } else {
           const meta = await this.metaCollection!.findOne({ _id: "settings" });
           manualAdjustment = meta?.manualAdjustment ?? 0;
