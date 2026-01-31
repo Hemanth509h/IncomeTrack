@@ -1,8 +1,9 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
+// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -27,14 +28,32 @@ export default defineConfig({
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
-  build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true,
-  },
   server: {
+    host: '0.0.0.0',
+    port: 5000,
+    allowedHosts: true,
+    hmr: {
+      clientPort: 443,
+    },
+    proxy: {
+      '/api': {
+        target: 'http://0.0.0.0:8000',
+        changeOrigin: true,
+      },
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],
     },
   },
-});
+  build: {
+    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    assetsDir: 'assets',
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
+  }
+})
