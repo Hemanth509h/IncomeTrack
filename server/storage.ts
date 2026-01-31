@@ -251,9 +251,8 @@ export class MongoStorage implements IStorage {
     if (month !== undefined && year !== undefined) {
       const adj = await this.metaCollection!.findOne({ _id: `adjustment_${year}_${month}` });
       if (adj) {
-        const allTimeIncome = cumulativeIncomeResult[0]?.total ?? 0;
-        const allTimeExpenses = cumulativeOutcomeResult[0]?.total ?? 0;
-        manualAdjustment = adj.manualAdjustment - (allTimeIncome - allTimeExpenses);
+        const currentBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0);
+        manualAdjustment = adj.manualAdjustment - currentBalance;
       } else {
         const prevAdjs = await this.metaCollection!.find({ 
           _id: { $regex: /^adjustment_/ },
@@ -288,9 +287,7 @@ export class MongoStorage implements IStorage {
 
     const totalIncome = incomeResult[0]?.total ?? 0;
     const totalExpenses = outcomeResult[0]?.total ?? 0;
-    const currentIncome = cumulativeIncomeResult[0]?.total ?? 0;
-    const currentExpenses = cumulativeOutcomeResult[0]?.total ?? 0;
-    const netBalance = currentIncome - currentExpenses + manualAdjustment;
+    const netBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0) + manualAdjustment;
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
     return {
