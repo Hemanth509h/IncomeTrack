@@ -1,16 +1,18 @@
-import { useFinancialSummary, useCategoryBreakdown } from "@/hooks/use-analytics";
+import { useFinancialSummary, useCategoryBreakdown, useAdjustBalance } from "@/hooks/use-analytics";
 import { useIncome, useOutcome } from "@/hooks/use-transactions";
 import { Sidebar } from "@/components/Sidebar";
 import { StatCard } from "@/components/StatCard";
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { TransactionForm } from "@/components/TransactionForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMonth } from "@/hooks/use-month";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
@@ -18,13 +20,38 @@ export default function Dashboard() {
   const { currentDate, nextMonth, prevMonth, formattedMonth } = useMonth();
   const month = currentDate.getMonth();
   const year = currentDate.getFullYear();
+  const { toast } = useToast();
 
   const { data: summary, isLoading: isSummaryLoading } = useFinancialSummary(month, year);
   const { data: breakdown, isLoading: isBreakdownLoading } = useCategoryBreakdown(month, year);
   const { data: income, isLoading: isIncomeLoading } = useIncome(month, year);
   const { data: outcome, isLoading: isOutcomeLoading } = useOutcome(month, year);
+  const adjustBalance = useAdjustBalance();
   
   const [isTxOpen, setIsTxOpen] = useState(false);
+  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [adjustAmount, setAdjustAmount] = useState("");
+
+  useEffect(() => {
+    if (summary) {
+      setAdjustAmount(summary.manualAdjustment.toString());
+    }
+  }, [summary]);
+
+  const handleAdjustBalance = () => {
+    const amount = parseFloat(adjustAmount);
+    if (isNaN(amount)) return;
+
+    adjustBalance.mutate(amount, {
+      onSuccess: () => {
+        setIsAdjustOpen(false);
+        toast({
+          title: "Balance Adjusted",
+          description: "Your total balance has been manually adjusted.",
+        });
+      },
+    });
+  };
 
   const latestTransactions = useMemo(() => {
     const combined = [
@@ -81,12 +108,51 @@ export default function Dashboard() {
               Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)
             ) : (
               <>
-                <StatCard 
-                  title="Total Balance" 
-                  value={`₹${summary?.netBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`} 
-                  icon={Wallet} 
-                  color="primary" 
-                />
+                <div className="relative group">
+                  <StatCard 
+                    title="Total Balance" 
+                    value={`₹${summary?.netBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`} 
+                    icon={Wallet} 
+                    color="primary" 
+                  />
+                  <Dialog open={isAdjustOpen} onOpenChange={setIsAdjustOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-4 right-4 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 backdrop-blur-sm border border-border/50 shadow-sm"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[325px]">
+                      <DialogHeader>
+                        <DialogTitle>Adjust Balance</DialogTitle>
+                      </DialogHeader>
+                      <div className="py-4">
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Manually adjust your current balance. This adjustment will be added to your calculated net balance.
+                        </p>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Adjustment Amount (₹)</label>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            value={adjustAmount} 
+                            onChange={(e) => setAdjustAmount(e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAdjustOpen(false)}>Cancel</Button>
+                        <Button onClick={handleAdjustBalance} disabled={adjustBalance.isPending}>
+                          Save Changes
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
                 <StatCard 
                   title="Total Income" 
                   value={`₹${summary?.totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`} 

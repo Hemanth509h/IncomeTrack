@@ -118,6 +118,12 @@ export async function registerRoutes(
     res.json(breakdown);
   });
 
+  app.post(api.analytics.adjustBalance.path, async (req, res) => {
+    const { amount } = api.analytics.adjustBalance.input.parse(req.body);
+    await storage.adjustBalance(amount);
+    res.json({ success: true });
+  });
+
   // Seed data if empty
   await seedDatabase();
 

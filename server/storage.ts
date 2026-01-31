@@ -18,11 +18,18 @@ export interface IStorage {
 
   getFinancialSummary(month?: number, year?: number): Promise<FinancialSummary>;
   getCategoryBreakdown(month?: number, year?: number): Promise<CategoryBreakdown[]>;
+  
+  adjustBalance(amount: number): Promise<void>;
 }
 
 interface CounterDoc {
   _id: string;
   seq: number;
+}
+
+interface MetaDoc {
+  _id: string;
+  manualAdjustment: number;
 }
 
 export class MongoStorage implements IStorage {
@@ -31,6 +38,7 @@ export class MongoStorage implements IStorage {
   private incomeCollection: Collection<any> | null = null;
   private outcomeCollection: Collection<any> | null = null;
   private countersCollection: Collection<CounterDoc> | null = null;
+  private metaCollection: Collection<MetaDoc> | null = null;
 
   constructor() {
     const uri = "mongodb+srv://phemanthkumar746:htnameh509h@data.psr09.mongodb.net/canteen?retryWrites=true&w=majority&appName=data";
@@ -44,6 +52,7 @@ export class MongoStorage implements IStorage {
     this.incomeCollection = this.db.collection("income");
     this.outcomeCollection = this.db.collection("outcome");
     this.countersCollection = this.db.collection("counters");
+    this.metaCollection = this.db.collection("meta");
     
     // Initialize counters if they don't exist
     await this.countersCollection.updateOne(
@@ -54,6 +63,13 @@ export class MongoStorage implements IStorage {
     await this.countersCollection.updateOne(
       { _id: "outcomeId" },
       { $setOnInsert: { seq: 0 } },
+      { upsert: true }
+    );
+
+    // Initialize meta if it doesn't exist
+    await this.metaCollection.updateOne(
+      { _id: "settings" },
+      { $setOnInsert: { manualAdjustment: 0 } },
       { upsert: true }
     );
   }
@@ -188,6 +204,14 @@ export class MongoStorage implements IStorage {
     };
   }
 
+  async adjustBalance(amount: number): Promise<void> {
+    await this.connect();
+    await this.metaCollection!.updateOne(
+      { _id: "settings" },
+      { $set: { manualAdjustment: amount } }
+    );
+  }
+
   async getFinancialSummary(month?: number, year?: number): Promise<FinancialSummary> {
     await this.connect();
     
@@ -219,12 +243,15 @@ export class MongoStorage implements IStorage {
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
 
+    const meta = await this.metaCollection!.findOne({ _id: "settings" });
+    const manualAdjustment = meta?.manualAdjustment ?? 0;
+
     const totalIncome = incomeResult[0]?.total ?? 0;
     const totalExpenses = outcomeResult[0]?.total ?? 0;
     
     const allTimeIncome = cumulativeIncomeResult[0]?.total ?? 0;
     const allTimeExpenses = cumulativeOutcomeResult[0]?.total ?? 0;
-    const netBalance = allTimeIncome - allTimeExpenses;
+    const netBalance = allTimeIncome - allTimeExpenses + manualAdjustment;
     
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
@@ -232,7 +259,8 @@ export class MongoStorage implements IStorage {
       totalIncome,
       totalExpenses,
       netBalance,
-      savingsRate
+      savingsRate,
+      manualAdjustment
     };
   }
 

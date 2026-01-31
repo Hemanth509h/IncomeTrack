@@ -47,6 +47,7 @@ export interface FinancialSummary {
   totalExpenses: number;
   netBalance: number;
   savingsRate: number;
+  manualAdjustment: number;
 }
 
 export interface CategoryBreakdown {
