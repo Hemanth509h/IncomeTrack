@@ -301,11 +301,11 @@ export class MongoStorage implements IStorage {
     const totalIncome = incomeResult[0]?.total ?? 0;
     const totalExpenses = outcomeResult[0]?.total ?? 0;
     
-    // Calculate raw cumulative balance up to the end of this month
-    const rawCumulativeBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0);
+    // rawBalanceAtCurrentMonth is everything up to the end of THIS month
+    const rawBalanceAtCurrentMonth = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0);
     
-    // Final balance is cumulative income - cumulative outcome + the calculated manual adjustment
-    const netBalance = Math.round(rawCumulativeBalance + manualAdjustment);
+    // Final balance is the current month's raw cumulative balance + the propagated manual adjustment delta
+    const netBalance = Math.round(rawBalanceAtCurrentMonth + manualAdjustment);
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
     return {
