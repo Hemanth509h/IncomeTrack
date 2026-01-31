@@ -199,6 +199,7 @@ export class MongoStorage implements IStorage {
       match.date = { $gte: start, $lt: end };
     }
 
+    // Monthly totals for income and outcome
     const incomeResult = await this.incomeCollection!.aggregate([
       { $match: match },
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
@@ -209,9 +210,22 @@ export class MongoStorage implements IStorage {
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
 
+    // Cumulative totals for absolute balance
+    const cumulativeIncomeResult = await this.incomeCollection!.aggregate([
+      { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
+    ]).toArray();
+    
+    const cumulativeOutcomeResult = await this.outcomeCollection!.aggregate([
+      { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
+    ]).toArray();
+
     const totalIncome = incomeResult[0]?.total ?? 0;
     const totalExpenses = outcomeResult[0]?.total ?? 0;
-    const netBalance = totalIncome - totalExpenses;
+    
+    const allTimeIncome = cumulativeIncomeResult[0]?.total ?? 0;
+    const allTimeExpenses = cumulativeOutcomeResult[0]?.total ?? 0;
+    const netBalance = allTimeIncome - allTimeExpenses;
+    
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
     return {
