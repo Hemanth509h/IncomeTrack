@@ -32,6 +32,7 @@ interface MetaDoc {
   month?: number;
   year?: number;
   manualAdjustment: number;
+  adjustmentDelta?: number;
 }
 
 export class MongoStorage implements IStorage {
@@ -202,9 +203,23 @@ export class MongoStorage implements IStorage {
   async adjustBalance(amount: number, month?: number, year?: number): Promise<void> {
     await this.connect();
     if (month !== undefined && year !== undefined) {
+      // Find the raw cumulative balance up to the end of this month
+      const end = new Date(Date.UTC(year, month + 1, 1));
+      const cumulativeIncomeResult = await this.incomeCollection!.aggregate([
+        { $match: { date: { $lt: end } } },
+        { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
+      ]).toArray();
+      const cumulativeOutcomeResult = await this.outcomeCollection!.aggregate([
+        { $match: { date: { $lt: end } } },
+        { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
+      ]).toArray();
+      
+      const rawBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0);
+      const manualAdjustment = amount - rawBalance;
+
       await this.metaCollection!.updateOne(
         { _id: `adjustment_${year}_${month}` },
-        { $set: { manualAdjustment: amount, month, year } },
+        { $set: { manualAdjustment: amount, month, year, adjustmentDelta: manualAdjustment } },
         { upsert: true }
       );
     } else {
@@ -217,8 +232,7 @@ export class MongoStorage implements IStorage {
 
   async resetData(): Promise<void> {
     await this.connect();
-    // Instead of deleting transactions, we just refresh the collections to ensure consistency
-    // No data deletion is performed here anymore as the user wants to "Recalculate"
+    // No data deletion, just ensure a refresh can be triggered if needed
     return;
   }
 
@@ -253,15 +267,12 @@ export class MongoStorage implements IStorage {
       { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
     ]).toArray();
 
-    let manualAdjustment = 0;
+    let propagatedDelta = 0;
     if (month !== undefined && year !== undefined) {
       const adj = await this.metaCollection!.findOne({ _id: `adjustment_${year}_${month}` });
       if (adj) {
-        // Find raw balance up to the end of THIS month
-        const currentBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0);
-        manualAdjustment = adj.manualAdjustment - currentBalance;
+        propagatedDelta = adj.adjustmentDelta ?? 0;
       } else {
-        // Find the most recent adjustment STRICTLY BEFORE this month/year
         const prevAdjs = await this.metaCollection!.find({ 
           _id: { $regex: /^adjustment_/ },
           $or: [
@@ -271,41 +282,21 @@ export class MongoStorage implements IStorage {
         }).sort({ year: -1, month: -1 }).limit(1).toArray();
         
         if (prevAdjs.length > 0) {
-          const lastAdj = prevAdjs[0];
-          // Adjustment sets the balance at the end of THAT month (adjEnd).
-          const adjEnd = new Date(Date.UTC(lastAdj.year!, lastAdj.month! + 1, 1));
-          
-          const incomeAtAdj = await this.incomeCollection!.aggregate([
-            { $match: { date: { $lt: adjEnd } } },
-            { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
-          ]).toArray();
-          const outcomeAtAdj = await this.outcomeCollection!.aggregate([
-            { $match: { date: { $lt: adjEnd } } },
-            { $group: { _id: null, total: { $sum: { $toDouble: "$amount" } } } }
-          ]).toArray();
-          
-          const rawBalanceAtAdj = (incomeAtAdj[0]?.total ?? 0) - (outcomeAtAdj[0]?.total ?? 0);
-          // manualAdjustment is the delta we need to add to ANY future month's raw balance
-          // to make it consistent with the previous manual set point.
-          manualAdjustment = lastAdj.manualAdjustment - rawBalanceAtAdj;
+          propagatedDelta = prevAdjs[0].adjustmentDelta ?? 0;
         } else {
           const meta = await this.metaCollection!.findOne({ _id: "settings" });
-          manualAdjustment = meta?.manualAdjustment ?? 0;
+          propagatedDelta = meta?.manualAdjustment ?? 0;
         }
       }
     } else {
       const meta = await this.metaCollection!.findOne({ _id: "settings" });
-      manualAdjustment = meta?.manualAdjustment ?? 0;
+      propagatedDelta = meta?.manualAdjustment ?? 0;
     }
 
     const totalIncome = incomeResult[0]?.total ?? 0;
     const totalExpenses = outcomeResult[0]?.total ?? 0;
-    
-    // Total raw balance is ALL income - ALL expenses up to this month
     const rawTotalBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0);
-    
-    // Final balance is the total raw balance + whatever adjustment we calculated
-    const netBalance = Math.round(rawTotalBalance + manualAdjustment);
+    const netBalance = Math.round(rawTotalBalance + propagatedDelta);
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
     return {
@@ -313,7 +304,7 @@ export class MongoStorage implements IStorage {
       totalExpenses,
       netBalance,
       savingsRate,
-      manualAdjustment
+      manualAdjustment: propagatedDelta
     };
   }
 
