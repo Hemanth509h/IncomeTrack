@@ -35,3 +35,16 @@ export function useAdjustBalance() {
     },
   });
 }
+
+export function useResetData() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest(api.analytics.resetData.method, api.analytics.resetData.path);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+  });
+}

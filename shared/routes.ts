@@ -129,6 +129,13 @@ export const api = {
         200: z.object({ success: z.boolean() }),
       },
     },
+    resetData: {
+      method: 'POST' as const,
+      path: '/api/analytics/reset',
+      responses: {
+        200: z.object({ success: z.boolean() }),
+      },
+    },
   },
 };
 

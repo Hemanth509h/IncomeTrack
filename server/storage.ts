@@ -16,10 +16,10 @@ export interface IStorage {
   deleteOutcome(id: number): Promise<void>;
   updateOutcome(id: number, data: Partial<InsertOutcome>): Promise<Outcome>;
 
+  adjustBalance(amount: number, month?: number, year?: number): Promise<void>;
+  resetData(): Promise<void>;
   getFinancialSummary(month?: number, year?: number): Promise<FinancialSummary>;
   getCategoryBreakdown(month?: number, year?: number): Promise<CategoryBreakdown[]>;
-  
-  adjustBalance(amount: number): Promise<void>;
 }
 
 interface CounterDoc {
@@ -213,6 +213,23 @@ export class MongoStorage implements IStorage {
         { $set: { manualAdjustment: amount } }
       );
     }
+  }
+
+  async resetData(): Promise<void> {
+    await this.connect();
+    await Promise.all([
+      this.incomeCollection!.deleteMany({}),
+      this.outcomeCollection!.deleteMany({}),
+      this.metaCollection!.deleteMany({}),
+      this.countersCollection!.updateMany({}, { $set: { seq: 0 } })
+    ]);
+    
+    // Re-initialize settings
+    await this.metaCollection!.updateOne(
+      { _id: "settings" },
+      { $setOnInsert: { manualAdjustment: 0 } },
+      { upsert: true }
+    );
   }
 
   async getFinancialSummary(month?: number, year?: number): Promise<FinancialSummary> {

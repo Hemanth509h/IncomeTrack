@@ -124,6 +124,11 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.post(api.analytics.resetData.path, async (_req, res) => {
+    await storage.resetData();
+    res.json({ success: true });
+  });
+
   // Seed data if empty
   await seedDatabase();
 

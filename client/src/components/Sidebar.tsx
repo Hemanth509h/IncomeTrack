@@ -1,8 +1,21 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Receipt, PieChart, Wallet, Menu } from "lucide-react";
+import { LayoutDashboard, Receipt, PieChart, Wallet, Menu, RefreshCcw } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { useResetData } from "@/hooks/use-analytics";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -11,6 +24,19 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const [location] = useLocation();
+  const resetData = useResetData();
+  const { toast } = useToast();
+
+  const handleReset = () => {
+    resetData.mutate(undefined, {
+      onSuccess: () => {
+        toast({
+          title: "Account Reset",
+          description: "All transactions and adjustments have been cleared.",
+        });
+      },
+    });
+  };
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
@@ -41,7 +67,36 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="p-4 border-t border-border/40">
+      <div className="p-4 border-t border-border/40 space-y-2">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl px-4 py-3 h-auto"
+            >
+              <RefreshCcw className="w-5 h-5 mr-3" />
+              <span className="font-medium">Reset Data</span>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete all your 
+                income, expenses, and balance adjustments.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleReset}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
+              >
+                Reset Everything
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <div className="bg-card rounded-xl p-4 border border-border/50 shadow-sm">
           <h4 className="font-semibold text-sm">Pro Tip</h4>
           <p className="text-xs text-muted-foreground mt-1">
