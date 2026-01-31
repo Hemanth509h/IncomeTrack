@@ -14,6 +14,7 @@ import { useMonth } from "@/hooks/use-month";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { queryClient } from "@/lib/queryClient";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
@@ -43,6 +44,12 @@ export default function Dashboard() {
   const handleRecalculate = () => {
     resetData.mutate(undefined, {
       onSuccess: () => {
+        // Invalidate all relevant queries to ensure the UI updates everywhere
+        queryClient.invalidateQueries({ queryKey: ["/api/summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/income"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/outcome"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/breakdown"] });
+        
         toast({
           title: "Recalculation Complete",
           description: "All transactions and balances have been refreshed.",
