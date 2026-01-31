@@ -257,6 +257,7 @@ export class MongoStorage implements IStorage {
     if (month !== undefined && year !== undefined) {
       const adj = await this.metaCollection!.findOne({ _id: `adjustment_${year}_${month}` });
       if (adj) {
+        // Find raw balance up to the end of THIS month
         const currentBalance = (cumulativeIncomeResult[0]?.total ?? 0) - (cumulativeOutcomeResult[0]?.total ?? 0);
         manualAdjustment = adj.manualAdjustment - currentBalance;
       } else {
@@ -271,8 +272,7 @@ export class MongoStorage implements IStorage {
         
         if (prevAdjs.length > 0) {
           const lastAdj = prevAdjs[0];
-          // If we found an adjustment, it sets the balance at the end of that month.
-          // We need to calculate how much to adjust the "raw" cumulative balance to match this.
+          // Adjustment sets the balance at the end of THAT month (adjEnd).
           const adjEnd = new Date(Date.UTC(lastAdj.year!, lastAdj.month! + 1, 1));
           
           const incomeAtAdj = await this.incomeCollection!.aggregate([
@@ -285,6 +285,8 @@ export class MongoStorage implements IStorage {
           ]).toArray();
           
           const rawBalanceAtAdj = (incomeAtAdj[0]?.total ?? 0) - (outcomeAtAdj[0]?.total ?? 0);
+          // manualAdjustment is the delta we need to add to ANY future month's raw balance
+          // to make it consistent with the previous manual set point.
           manualAdjustment = lastAdj.manualAdjustment - rawBalanceAtAdj;
         } else {
           const meta = await this.metaCollection!.findOne({ _id: "settings" });
