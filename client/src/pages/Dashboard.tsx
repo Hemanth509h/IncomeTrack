@@ -36,6 +36,12 @@ export default function Dashboard() {
   const [adjustAmount, setAdjustAmount] = useState("");
 
   useEffect(() => {
+    if (summary) {
+      setAdjustAmount(summary.netBalance.toString());
+    }
+  }, [summary]);
+
+  const handleAdjustBalance = () => {
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount)) return;
 
