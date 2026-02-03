@@ -2,7 +2,7 @@ import { useFinancialSummary, useCategoryBreakdown, useAdjustBalance, useResetDa
 import { useIncome, useOutcome } from "@/hooks/use-transactions";
 import { Sidebar } from "@/components/Sidebar";
 import { StatCard } from "@/components/StatCard";
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ChevronLeft, ChevronRight, Pencil, RefreshCcw } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -36,29 +36,6 @@ export default function Dashboard() {
   const [adjustAmount, setAdjustAmount] = useState("");
 
   useEffect(() => {
-    if (summary) {
-      setAdjustAmount(summary.netBalance.toString());
-    }
-  }, [summary]);
-
-  const handleRecalculate = () => {
-    resetData.mutate(undefined, {
-      onSuccess: () => {
-        // Invalidate all relevant queries to ensure the UI updates everywhere
-        queryClient.invalidateQueries({ queryKey: ["/api/summary"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/income"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/outcome"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/breakdown"] });
-        
-        toast({
-          title: "Recalculation Complete",
-          description: "All transactions and balances have been refreshed.",
-        });
-      },
-    });
-  };
-
-  const handleAdjustBalance = () => {
     const amount = parseFloat(adjustAmount);
     if (isNaN(amount)) return;
 
@@ -108,17 +85,6 @@ export default function Dashboard() {
             </div>
             
             <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
-                size="icon"
-                className="h-12 w-12 rounded-xl border-border/50 hover:bg-muted"
-                onClick={handleRecalculate}
-                disabled={resetData.isPending}
-                title="Recalculate all months"
-              >
-                <RefreshCcw className={cn("w-5 h-5", resetData.isPending && "animate-spin")} />
-              </Button>
-              
               <Dialog open={isTxOpen} onOpenChange={setIsTxOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20 px-6 h-12">
